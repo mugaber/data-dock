@@ -1,11 +1,21 @@
+"use client";
+
+import { useState } from "react";
 import { HardDrive } from "lucide-react";
 import SignIn from "./signin";
+import SignUp from "./signup";
 
 export default function Auth() {
+  const [isSignIn, setIsSignIn] = useState(true);
+
   return (
     <div className="flex min-h-screen">
       <div className="relative w-1/2 bg-navy p-20 flex flex-col justify-center">
-        <SignIn />
+        {isSignIn ? (
+          <SignIn setIsSignIn={setIsSignIn} />
+        ) : (
+          <SignUp setIsSignIn={setIsSignIn} />
+        )}
 
         <div className="absolute bottom-10 left-0 right-0 text-center text-gray-400 text-base">
           © 2025 DataDock

@@ -9,10 +9,18 @@ import {
   PrimaryButton,
 } from "@/components/custom";
 
-export default function SignIn() {
+interface SignInProps {
+  setIsSignIn: (isSignIn: boolean) => void;
+}
+
+export default function SignIn({ setIsSignIn }: SignInProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+
+  const handleSignup = () => {
+    setIsSignIn(false);
+  };
 
   return (
     <div className="w-full max-w-3xl mx-auto">
@@ -60,12 +68,17 @@ export default function SignIn() {
           <CustomLink>Forgot password?</CustomLink>
         </div>
 
-        <PrimaryButton type="submit" className="w-full">
+        <PrimaryButton
+          type="submit"
+          className="w-full"
+          disabled={!email || !password}
+        >
           Sign In
         </PrimaryButton>
 
         <p className="text-lg text-white">
-          Don&apos;t have an account yet? <CustomLink>Sign up</CustomLink>
+          Don&apos;t have an account yet?{" "}
+          <CustomLink onClick={handleSignup}>Sign up</CustomLink>
         </p>
       </form>
     </div>

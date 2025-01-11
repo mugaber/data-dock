@@ -12,7 +12,8 @@
 ## User Experience
 
 - [ ] Add loading states to forms
-- [ ] Improve form validation and error messages
+- [ ] Use `react-hook-form` for creating forms
+- [ ] Improve form validation and error messages (`zod`)
 - [ ] Add toast notifications for success/error states
 - [ ] Make forms accessible with ARIA labels
 - [ ] Add keyboard navigation support
