@@ -1,0 +1,39 @@
+# TO-DO List
+
+## Authentication
+
+- [ ] Add forgot password functionality
+- [ ] Implement email verification
+- [ ] Add rate limiting for login attempts
+- [ ] Set up password strength requirements
+- [ ] Add "Stay signed in" functionality for Remember Me
+- [ ] Implement OAuth providers (Google, GitHub)
+
+## User Experience
+
+- [ ] Add loading states to forms
+- [ ] Improve form validation and error messages
+- [ ] Add toast notifications for success/error states
+- [ ] Make forms accessible with ARIA labels
+- [ ] Add keyboard navigation support
+
+## Security
+
+- [ ] Set up CSRF protection
+- [ ] Implement session management
+- [ ] Add input sanitization
+- [ ] Set up secure password reset flow
+- [ ] Add 2FA support
+
+## Testing
+
+- [ ] Add unit tests for auth flows
+- [ ] Add integration tests for forms
+- [ ] Set up E2E testing
+- [ ] Add accessibility tests
+
+## Future Enhancements
+
+- [ ] Add dark/light theme toggle
+- [ ] Add profile picture support
+- [ ] Create password change functionality
