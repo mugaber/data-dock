@@ -68,6 +68,25 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      keyframes: {
+        cpulse: {
+          "0%": {
+            transform: "scale(0.8)",
+            backgroundColor: "transparent",
+          },
+          "50%": {
+            transform: "scale(1.2)",
+            backgroundColor: "transparent",
+          },
+          "100%": {
+            transform: "scale(0.8)",
+            backgroundColor: "transparent",
+          },
+        },
+      },
+      animation: {
+        cpulse: "cpulse 2s infinite",
+      },
     },
   },
   plugins: [animate],
