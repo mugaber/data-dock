@@ -47,3 +47,9 @@ export async function signup({ email, password, options }: SignUpProps) {
     throw error;
   }
 }
+
+export async function signout() {
+  const supabase = createClient();
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+}
