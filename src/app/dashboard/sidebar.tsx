@@ -23,10 +23,11 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getParentOrganization } from "@/lib/supabase/actions";
+import { getParentOrganization, getUser } from "@/lib/supabase/actions";
 import { signout } from "../auth/actions";
 import { useRouter } from "next/navigation";
 import { settingsPath, connectionsPath } from "@/lib/paths";
+import { useAppContext } from "@/context";
 
 interface Organization {
   id: string;
@@ -38,10 +39,9 @@ interface Organization {
 }
 
 interface UserData {
-  user_metadata: {
-    full_name?: string;
-    avatar_url?: string;
-  };
+  full_name?: string;
+  email?: string;
+  avatar_url?: string;
 }
 
 const menuItems = [
@@ -56,6 +56,7 @@ export function AppSidebar() {
   const [orgData, setOrgData] = useState<Organization | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const router = useRouter();
+  const { setCurrentUser, setParentOrganization } = useAppContext();
 
   useEffect(() => {
     const getUserData = async () => {
@@ -63,10 +64,17 @@ export function AppSidebar() {
         const { data: userInfo, error: userInfoError } =
           await createClient().auth.getUser();
         if (userInfoError) throw userInfoError;
+        const userData = await getUser(userInfo.user.id);
         const orgData = await getParentOrganization(userInfo.user.id);
-        // @ts-expect-error - TODO: use prisma
+        // @ts-expect-error - TODO: use ORM
         setOrgData(orgData);
-        setUserData(userInfo.user);
+        setUserData(userData);
+        setCurrentUser({
+          ...userData,
+          email: userInfo?.user?.email,
+        });
+        // @ts-expect-error - TODO: use ORM
+        setParentOrganization(orgData);
       } catch (error) {
         toast({
           title: "Error",
@@ -159,14 +167,12 @@ export function AppSidebar() {
 
       <div className="mt-5 flex items-center gap-3">
         <Avatar>
-          <AvatarImage src={userData?.user_metadata?.avatar_url} />
+          <AvatarImage src={userData?.avatar_url} />
           <AvatarFallback>CN</AvatarFallback>
         </Avatar>
         <div>
           {userData ? (
-            <p className="text-sm truncate">
-              {userData?.user_metadata?.full_name}
-            </p>
+            <p className="text-sm truncate">{userData?.full_name}</p>
           ) : (
             <Ellipsis className="w-5 h-5 text-gray-400 animate-cpulse" />
           )}

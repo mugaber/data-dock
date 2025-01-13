@@ -3,7 +3,7 @@
 ## Authentication
 
 - [ ] Add forgot password functionality
-- [ ] Implement email verification
+- [x] Implement email verification
 - [ ] Add rate limiting for login attempts
 - [ ] Set up password strength requirements
 - [ ] Add "Stay signed in" functionality for Remember Me
@@ -12,7 +12,6 @@
 ## User Experience
 
 - [ ] Add loading states to forms
-- [ ] Use `react-hook-form` for creating forms
 - [ ] Improve form validation and error messages (`zod`)
 - [ ] Add toast notifications for success/error states
 - [ ] Make forms accessible with ARIA labels
@@ -38,3 +37,6 @@
 - [ ] Add dark/light theme toggle
 - [ ] Add profile picture support
 - [ ] Create password change functionality
+- [ ] Use `react-hook-form` for creating forms
+- [ ] Use ORM and create a database schema
+- [ ] Use a more robust state management (Zustand | Redux | Jotai)
