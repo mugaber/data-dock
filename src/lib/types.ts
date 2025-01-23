@@ -13,3 +13,8 @@ export type Organization = {
   created_at?: string;
   updated_at?: string;
 };
+
+export type Member = {
+  email: string;
+  role: string;
+};

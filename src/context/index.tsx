@@ -11,6 +11,7 @@ interface AppContextType {
     React.SetStateAction<Organization | null>
   >;
   allUsers: User[];
+  refetchAllUsers: () => void;
 }
 
 const AppContext = createContext<AppContextType>({
@@ -19,6 +20,7 @@ const AppContext = createContext<AppContextType>({
   parentOrganization: null,
   setParentOrganization: () => {},
   allUsers: [],
+  refetchAllUsers: () => {},
 });
 
 export const useAppContext = () => useContext(AppContext);
@@ -28,14 +30,17 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [parentOrganization, setParentOrganization] =
     useState<Organization | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [refetchUsers, setRefetchUsers] = useState(false);
+
+  const refetchAllUsers = () => setRefetchUsers((prev) => !prev);
 
   useEffect(() => {
     const fetchAllUsers = async () => {
       const users = await getAllUsers();
-      setAllUsers(users);
+      setAllUsers(users || []);
     };
     fetchAllUsers();
-  }, [parentOrganization?.id]);
+  }, [parentOrganization?.id, refetchUsers]);
 
   return (
     <AppContext.Provider
@@ -45,6 +50,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         parentOrganization,
         setParentOrganization,
         allUsers,
+        refetchAllUsers,
       }}
     >
       {children}

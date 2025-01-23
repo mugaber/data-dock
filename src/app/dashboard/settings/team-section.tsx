@@ -14,18 +14,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { Loader2, MoreHorizontal, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CustomCheckbox } from "@/components/custom";
 import { CustomTableHead } from "@/components/custom/table";
-import { cn } from "@/lib/utils";
 import { useAppContext } from "@/context";
 import { getOrgMembers } from "../utils";
+import MembersModal from "./members-modal";
+import { removeMembersFromOrganization } from "@/lib/supabase/actions";
+import { toast } from "@/hooks/use-toast";
 
 export function TeamSection() {
-  const { parentOrganization, allUsers } = useAppContext();
+  const { parentOrganization, allUsers, refetchAllUsers } = useAppContext();
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-
+  const [loading, setLoading] = useState(false);
   const orgMembers = getOrgMembers(
     allUsers,
     parentOrganization?.members,
@@ -52,24 +54,51 @@ export function TeamSection() {
     setSelectedMembers(membersWithoutOwner.map((member) => member.id));
   };
 
+  const handleRemoveMembers = async (members: string[]) => {
+    setLoading(true);
+    try {
+      await removeMembersFromOrganization(
+        parentOrganization?.id ?? "",
+        members
+      );
+      toast({
+        title: "Members removed",
+        description: "The members have been removed from the organization",
+      });
+      setSelectedMembers([]);
+      refetchAllUsers();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An error occurred";
+      toast({
+        title: "Error",
+        description: errorMessage,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 bg-gray-800 rounded-lg shadow-lg p-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Team</h2>
 
-        <Button
-          className={cn("text-base", {
-            "bg-destructive": selectedMembers.length,
-          })}
-        >
-          {selectedMembers.length ? (
+        {selectedMembers.length ? (
+          <Button
+            variant="destructive"
+            className="text-base"
+            disabled={loading}
+            onClick={() => handleRemoveMembers(selectedMembers)}
+          >
             <Trash2 className="mr-1 h-4 w-4" />
-          ) : (
-            <Plus className="mr-1 h-4 w-4" />
-          )}
-          {selectedMembers.length ? "Remove" : "Add new member"}
-        </Button>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remove"}
+          </Button>
+        ) : (
+          <MembersModal />
+        )}
       </div>
+
       <Table>
         <TableHeader>
           <TableRow className="border-none hover:bg-gray-800">
@@ -131,9 +160,16 @@ export function TeamSection() {
                     align="end"
                     className="bg-gray-700 border border-gray-700 text-white"
                   >
-                    <DropdownMenuItem className="text-destructive cursor-pointer">
+                    <DropdownMenuItem
+                      className="text-destructive cursor-pointer"
+                      onClick={() => handleRemoveMembers([member.id])}
+                    >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Remove
+                      {loading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Remove"
+                      )}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
