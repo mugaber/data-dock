@@ -5,6 +5,7 @@ import {
   Link as Link2,
   ChevronsUpDown,
   Ellipsis,
+  Database,
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,7 +27,7 @@ import { useEffect, useState } from "react";
 import { getParentOrganization, getUser } from "@/lib/supabase/actions";
 import { signout } from "../auth/actions";
 import { useRouter } from "next/navigation";
-import { settingsPath, connectionsPath } from "@/lib/paths";
+import { settingsPath, connectionsPath, integrationsPath } from "@/lib/paths";
 import { useAppContext } from "@/context";
 
 interface Organization {
@@ -45,6 +46,7 @@ interface UserData {
 }
 
 const menuItems = [
+  { icon: Database, label: "Integrations", path: integrationsPath() },
   { icon: Link2, label: "Connections", path: connectionsPath() },
   { label: "separator" },
   { icon: Settings, label: "Settings", path: settingsPath() },
