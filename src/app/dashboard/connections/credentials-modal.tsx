@@ -46,7 +46,7 @@ export function CredentialsModal({
       <DialogContent className="sm:max-w-[430px] p-6 bg-navy text-white border-0">
         <DialogHeader className="mb-2">
           <DialogTitle className="text-xl font-medium tracking-wide capitalize">
-            {connection?.type} data credentials
+            {connection?.displayName} data credentials
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-5">

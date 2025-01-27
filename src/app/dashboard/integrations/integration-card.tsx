@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import Image from "next/image";
 import { IntegrationCardProps } from "./lib";
+import { connectionStorage } from "../utils/connections";
+import { useAppContext } from "@/context";
 
 export default function IntegrationCard({
   name,
@@ -11,13 +13,12 @@ export default function IntegrationCard({
   updatedIntegrations,
 }: IntegrationCardProps) {
   const [isConnected, setIsConnected] = useState(false);
+  const { parentOrganization } = useAppContext();
 
   useEffect(() => {
-    const isConnected = localStorage.getItem(
-      `data-dock-${name}-connection-name`
-    );
+    const isConnected = connectionStorage(name, parentOrganization?.id)?.apiKey;
     setIsConnected(!!isConnected);
-  }, [name, updatedIntegrations?.length]);
+  }, [name, updatedIntegrations?.length, parentOrganization?.id]);
 
   return (
     <Card className="bg-gray-800 border-none">

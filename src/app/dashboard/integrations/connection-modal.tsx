@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { IntegrationCardProps } from "./lib";
 import { CustomInput } from "@/components/custom";
 import { toast } from "@/hooks/use-toast";
+import { connectionStorage } from "../utils/connections";
+import { useAppContext } from "@/context";
 
 interface CredentialsModalProps {
   open: boolean;
@@ -30,6 +32,7 @@ export default function ConnectionModal({
   updatedIntegrations,
   setUpdatedIntegrations,
 }: CredentialsModalProps) {
+  const { parentOrganization } = useAppContext();
   const [connectionName, setConnectionName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
@@ -45,17 +48,15 @@ export default function ConnectionModal({
   });
 
   useEffect(() => {
-    setConnectionName(
-      localStorage.getItem(`data-dock-${integration?.name}-connection-name`) ||
-        ""
+    const connection = connectionStorage(
+      integration?.name,
+      parentOrganization?.id
     );
-    setApiKey(
-      localStorage.getItem(`data-dock-${integration?.name}-api-key`) || ""
-    );
-    setIsConnected(
-      !!localStorage.getItem(`data-dock-${integration?.name}-connection-name`)
-    );
-  }, [integration, updatedIntegrations?.length]);
+    if (!connection) return;
+    setConnectionName(connection.connectionName || "");
+    setApiKey(connection.apiKey || "");
+    setIsConnected(!!connection.connectionName);
+  }, [integration, updatedIntegrations?.length, parentOrganization?.id]);
 
   const handleCopy = async (text: string, field: keyof typeof copiedStates) => {
     await navigator.clipboard.writeText(text);
@@ -96,13 +97,12 @@ export default function ConnectionModal({
     }
     setIsLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    localStorage.setItem(
-      `data-dock-${integration?.name}-connection-name`,
-      connectionName
-    );
-    localStorage.setItem(`data-dock-${integration?.name}-api-key`, apiKey);
-    setIsLoading(false);
+    connectionStorage(
+      integration?.name,
+      parentOrganization?.id
+    )?.setConnection?.(connectionName, apiKey);
     onOpenChange(false);
+    setIsLoading(false);
     setUpdatedIntegrations([...updatedIntegrations, integration?.name || ""]);
 
     toast({
@@ -112,8 +112,10 @@ export default function ConnectionModal({
   };
 
   const handleDisconnect = () => {
-    localStorage.removeItem(`data-dock-${integration?.name}-connection-name`);
-    localStorage.removeItem(`data-dock-${integration?.name}-api-key`);
+    connectionStorage(
+      integration?.name,
+      parentOrganization?.id
+    )?.disconnect?.();
     setIsConnected(false);
     onOpenChange(false);
     setUpdatedIntegrations(
@@ -231,7 +233,7 @@ export default function ConnectionModal({
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : isConnected ? (
-            "Reconnect"
+            "Update connection"
           ) : (
             "Connect"
           )}

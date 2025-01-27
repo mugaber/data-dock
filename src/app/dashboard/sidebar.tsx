@@ -65,7 +65,6 @@ export function AppSidebar() {
       try {
         const { data: userInfo, error: userInfoError } =
           await createClient().auth.getUser();
-        console.log(userInfo);
         if (userInfoError) throw userInfoError;
         const userData = await getUser(userInfo.user.id);
         const orgData = await getParentOrganization(userInfo.user.id);
