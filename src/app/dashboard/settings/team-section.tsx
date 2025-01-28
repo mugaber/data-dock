@@ -151,7 +151,9 @@ export function TeamSection() {
                   <span>{member?.full_name}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-white">{member.type}</TableCell>
+              <TableCell className="text-white capitalize">
+                {member.type}
+              </TableCell>
               <TableCell className="text-gray-400">{member.email}</TableCell>
 
               <TableCell className="flex justify-center">

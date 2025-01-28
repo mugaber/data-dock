@@ -9,7 +9,7 @@ const CustomInput = ({ ...props }: React.ComponentProps<typeof BaseInput>) => {
       className={cn(
         `
           bg-gray-700 border-gray-600 text-white 
-          placeholder:text-gray-400 h-12 text-lg
+          placeholder:text-gray-400 h-11 text-lg
           hover:border-gray-400 focus:border-gray-400
           [&:not(:placeholder-shown)]:!bg-gray-700
           [&:-webkit-autofill]:!bg-gray-700
