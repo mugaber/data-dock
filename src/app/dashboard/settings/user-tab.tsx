@@ -10,7 +10,7 @@ import { updateUser } from "@/lib/supabase/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 export default function UserTab() {
-  const { currentUser } = useAppContext();
+  const { currentUser, setCurrentUser, refetchAllUsers } = useAppContext();
   const [editState, setEditState] = useState({
     show: false,
     loading: false,
@@ -34,13 +34,16 @@ export default function UserTab() {
       await updateUser(currentUser?.id ?? "", {
         full_name: userName,
       });
-      setUserName(userName);
+      setCurrentUser((prev) => {
+        if (!prev) return null;
+        return { ...prev, full_name: userName };
+      });
       toast({
-        title: "Name updated successfully",
+        title: "Success",
         description: "Your name has been updated successfully",
       });
+      refetchAllUsers();
     } catch (error) {
-      setUserName(currentUser?.full_name || "");
       const errorMessage =
         error instanceof Error ? error.message : "An error occurred";
       toast({

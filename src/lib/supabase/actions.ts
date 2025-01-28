@@ -110,13 +110,14 @@ const addMemberToOrganization = async (
 
   const updatedMembers = [...orgData.members, userId];
 
-  const { data, error } = await supabase
+  const { error: updateOrgError } = await supabase
     .from("organizations")
     .update({ members: updatedMembers })
     .eq("id", organizationId);
 
-  if (error) throw error;
-  return data;
+  if (updateOrgError) throw updateOrgError;
+
+  return { success: true };
 };
 
 const removeMembersFromOrganization = async (

@@ -85,7 +85,7 @@ export default function ConnectionPage() {
         {FORECAST_ENDPOINTS.map((endpoint, index) => (
           <Card
             key={index}
-            className="p-4 bg-gray-800 border-none hover:shadow-lg transition-shadow"
+            className="p-4 bg-gray-800 border-none hover:shadow-lg transition-shadow overflow-hidden"
           >
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between mb-2">
@@ -98,7 +98,7 @@ export default function ConnectionPage() {
                 {endpoint.description}
               </h3>
 
-              <p className="text-sm text-gray-300 mb-4 flex-grow">
+              <p className="text-sm text-gray-300 mb-4 flex-grow truncate">
                 {endpoint.path}
               </p>
 

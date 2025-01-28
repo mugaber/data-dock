@@ -12,7 +12,7 @@ import { updateOrganization } from "@/lib/supabase/actions";
 import { Loader2 } from "lucide-react";
 
 export default function OrganizationTab() {
-  const { parentOrganization } = useAppContext();
+  const { parentOrganization, setParentOrganization } = useAppContext();
   const [orgEditState, setOrgEditState] = useState({
     show: false,
     loading: false,
@@ -35,6 +35,10 @@ export default function OrganizationTab() {
       await updateOrganization(parentOrganization?.id || "", {
         id: parentOrganization?.id || "",
         name: orgName,
+      });
+      setParentOrganization((prev) => {
+        if (!prev) return null;
+        return { ...prev, name: orgName };
       });
       toast({
         title: "Success",

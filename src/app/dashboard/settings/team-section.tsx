@@ -25,14 +25,22 @@ import { removeMembersFromOrganization } from "@/lib/supabase/actions";
 import { toast } from "@/hooks/use-toast";
 
 export function TeamSection() {
-  const { parentOrganization, allUsers, refetchAllUsers } = useAppContext();
+  const { parentOrganization, allUsers, refetchAllUsers, refetchCurrentOrg } =
+    useAppContext();
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+
   const orgMembers = getOrgMembers(
     allUsers,
     parentOrganization?.members,
     parentOrganization?.owner ?? ""
   );
+
+  const sortedOrgMembers = orgMembers?.sort((a, b) => {
+    if (a.type === "owner") return -1;
+    if (b.type === "owner") return 1;
+    return 0;
+  });
 
   const membersWithoutOwner = orgMembers?.filter(
     (member) => member?.type !== "owner"
@@ -67,6 +75,7 @@ export function TeamSection() {
       });
       setSelectedMembers([]);
       refetchAllUsers();
+      refetchCurrentOrg();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "An error occurred";
@@ -121,7 +130,7 @@ export function TeamSection() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {orgMembers?.map((member) => (
+          {sortedOrgMembers?.map((member) => (
             <TableRow
               key={member?.id}
               className="border-none text-base hover:bg-gray-700"
@@ -142,8 +151,8 @@ export function TeamSection() {
                   <span>{member?.full_name}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-white/50">{member.type}</TableCell>
-              <TableCell className="text-white/50">{member.email}</TableCell>
+              <TableCell className="text-white">{member.type}</TableCell>
+              <TableCell className="text-gray-400">{member.email}</TableCell>
 
               <TableCell className="flex justify-center">
                 <DropdownMenu>

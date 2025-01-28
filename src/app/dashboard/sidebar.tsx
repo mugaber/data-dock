@@ -20,30 +20,12 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { getParentOrganization, getUser } from "@/lib/supabase/actions";
 import { signout } from "../auth/actions";
 import { useRouter } from "next/navigation";
 import { settingsPath, connectionsPath, integrationsPath } from "@/lib/paths";
 import { useAppContext } from "@/context";
-
-interface Organization {
-  id: string;
-  name: string;
-  owner: string;
-  members: string[];
-  created_at: string;
-  updated_at: string;
-}
-
-interface UserData {
-  full_name?: string;
-  email?: string;
-  avatar_url?: string;
-}
 
 const menuItems = [
   { icon: Database, label: "Integrations", path: integrationsPath() },
@@ -55,42 +37,8 @@ const menuItems = [
 export function AppSidebar() {
   const { toast } = useToast();
   const pathname = usePathname();
-  const [orgData, setOrgData] = useState<Organization | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
   const router = useRouter();
-  const { setCurrentUser, setParentOrganization } = useAppContext();
-
-  useEffect(() => {
-    const getUserData = async () => {
-      try {
-        const { data: userInfo, error: userInfoError } =
-          await createClient().auth.getUser();
-        if (userInfoError) throw userInfoError;
-        const userData = await getUser(userInfo.user.id);
-        const orgData = await getParentOrganization(userInfo.user.id);
-        // @ts-expect-error - TODO: use ORM
-        setOrgData(orgData);
-        setUserData(userData);
-        setCurrentUser({
-          ...userData,
-          email: userInfo?.user?.email,
-        });
-        // @ts-expect-error - TODO: use ORM
-        setParentOrganization(orgData);
-      } catch (error) {
-        toast({
-          title: "Error",
-          description:
-            error instanceof Error
-              ? error.message
-              : "Something went wrong getting your user data.",
-          variant: "destructive",
-        });
-        router.push("/");
-      }
-    };
-    getUserData();
-  }, []);
+  const { currentUser, parentOrganization } = useAppContext();
 
   const logout = async () => {
     try {
@@ -118,8 +66,8 @@ export function AppSidebar() {
       <SidebarContent>
         <div className="p-2 flex items-center justify-between">
           <h1 className="text-xl font-semibold truncate">
-            {orgData ? (
-              orgData.name
+            {parentOrganization ? (
+              parentOrganization.name
             ) : (
               <div className="flex min-h-7 items-center">
                 <Ellipsis className="w-6 h-6 text-gray-400 animate-cpulse" />
@@ -169,12 +117,12 @@ export function AppSidebar() {
 
       <div className="mt-5 flex items-center gap-3">
         <Avatar>
-          <AvatarImage src={userData?.avatar_url} />
+          <AvatarImage src={currentUser?.avatar_url} />
           <AvatarFallback>CN</AvatarFallback>
         </Avatar>
         <div>
-          {userData ? (
-            <p className="text-sm truncate">{userData?.full_name}</p>
+          {currentUser ? (
+            <p className="text-sm truncate">{currentUser?.full_name}</p>
           ) : (
             <Ellipsis className="w-5 h-5 text-gray-400 animate-cpulse" />
           )}

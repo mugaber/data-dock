@@ -17,7 +17,9 @@ import { addMemberToOrganization } from "@/lib/supabase/actions";
 import { useToast } from "@/hooks/use-toast";
 
 export default function MembersModal() {
-  const { allUsers, parentOrganization, refetchAllUsers } = useAppContext();
+  const { allUsers, parentOrganization, refetchAllUsers, refetchCurrentOrg } =
+    useAppContext();
+  const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -43,10 +45,12 @@ export default function MembersModal() {
         parentOrganization?.id || ""
       );
       refetchAllUsers();
+      refetchCurrentOrg();
       toast({
         title: "Member added",
         description: "The member has been added to the organization",
       });
+      setOpen(false);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "An error occurred";
@@ -61,9 +65,9 @@ export default function MembersModal() {
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="text-base">
+        <Button className="text-base" onClick={() => setOpen(true)}>
           <Plus className="mr-1 h-4 w-4" />
           Add new member
         </Button>
