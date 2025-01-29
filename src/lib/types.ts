@@ -12,9 +12,17 @@ export type Organization = {
   members?: string[];
   created_at?: string;
   updated_at?: string;
+  connections?: Connection[];
 };
 
 export type Member = {
   email: string;
   role: string;
+};
+
+export type Connection = {
+  type: string;
+  name: string;
+  apiKey: string;
+  syncInterval?: string;
 };

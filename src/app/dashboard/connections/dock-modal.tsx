@@ -48,7 +48,7 @@ export default function DockModal({
       <DialogContent className="sm:max-w-[440px] p-6 bg-gray-800 text-white border-0">
         <DialogHeader className="mb-2">
           <DialogTitle className="text-xl font-medium tracking-wide pr-3">
-            Data Dock for {connection?.displayName}
+            Data Dock for {connection?.name}
           </DialogTitle>
         </DialogHeader>
 

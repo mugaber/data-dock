@@ -3,7 +3,6 @@ export interface IntegrationCardProps {
   name: string;
   type: string;
   onEdit: () => void;
-  updatedIntegrations?: string[];
 }
 
 export const integrations: IntegrationCardProps[] = [
@@ -21,8 +20,8 @@ export const integrations: IntegrationCardProps[] = [
   },
   {
     id: "3",
-    name: "planday",
-    type: "Workforce Management",
+    name: "shopify",
+    type: "E-commerce",
     onEdit: () => {},
   },
 ];

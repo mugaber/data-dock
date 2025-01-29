@@ -80,7 +80,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       if (!currentUser?.id) return;
       const orgData = await getParentOrganization(currentUser?.id);
       // @ts-expect-error - TODO: Update Organization type
-      setParentOrganization(orgData);
+      const connections = JSON.parse(orgData?.connections || "[]");
+      // @ts-expect-error - TODO: Update Organization type
+      setParentOrganization({ ...orgData, connections });
     };
     fetchOrgData();
   }, [currentUser?.id, refetchOrg]);

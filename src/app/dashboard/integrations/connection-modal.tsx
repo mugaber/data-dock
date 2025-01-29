@@ -9,35 +9,32 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Check, Copy, Eye, EyeOff, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { IntegrationCardProps } from "./lib";
 import { CustomInput } from "@/components/custom";
 import { toast } from "@/hooks/use-toast";
-import { connectionStorage } from "../utils/connections";
 import { useAppContext } from "@/context";
+import { updateOrganizationConnections } from "@/lib/supabase/actions";
 
 interface CredentialsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   integration: IntegrationCardProps | null;
-  updatedIntegrations: string[];
-  setUpdatedIntegrations: (updatedIntegrations: string[]) => void;
 }
 
 export default function ConnectionModal({
   open,
   onOpenChange,
   integration,
-  updatedIntegrations,
-  setUpdatedIntegrations,
 }: CredentialsModalProps) {
-  const { parentOrganization } = useAppContext();
+  const { parentOrganization, refetchCurrentOrg } = useAppContext();
+
   const [connectionName, setConnectionName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState({
     connectionName: "",
     apiKey: "",
@@ -46,17 +43,6 @@ export default function ConnectionModal({
     connectionName: false,
     apiKey: false,
   });
-
-  useEffect(() => {
-    const connection = connectionStorage(
-      integration?.name,
-      parentOrganization?.id
-    );
-    if (!connection) return;
-    setConnectionName(connection.connectionName || "");
-    setApiKey(connection.apiKey || "");
-    setIsConnected(!!connection.connectionName);
-  }, [integration, updatedIntegrations?.length, parentOrganization?.id]);
 
   const handleCopy = async (text: string, field: keyof typeof copiedStates) => {
     await navigator.clipboard.writeText(text);
@@ -95,46 +81,63 @@ export default function ConnectionModal({
       }
       return;
     }
+
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    connectionStorage(
-      integration?.name,
-      parentOrganization?.id
-    )?.setConnection?.(connectionName, apiKey);
-    onOpenChange(false);
-    setIsLoading(false);
-    setUpdatedIntegrations([...updatedIntegrations, integration?.name || ""]);
+
+    try {
+      const isConnectionExists = parentOrganization?.connections?.some(
+        (conn) => conn.name === connectionName
+      );
+
+      if (isConnectionExists) {
+        handleError("connectionName", "Connection name already exists");
+        return;
+      }
+
+      await updateOrganizationConnections(parentOrganization?.id || "", [
+        ...(parentOrganization?.connections || []),
+        {
+          type: integration?.name || "",
+          name: connectionName,
+          apiKey: apiKey,
+          syncInterval: "monthly",
+        },
+      ]);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error connecting to " + integration?.name,
+        description: "Please try again",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+
+    refetchCurrentOrg();
+    handleClose();
 
     toast({
-      title: "Connected to " + integration?.name,
+      title: `Added ${integration?.name} connection`,
       description: "You can now start using the integration",
     });
   };
 
-  const handleDisconnect = () => {
-    connectionStorage(
-      integration?.name,
-      parentOrganization?.id
-    )?.disconnect?.();
-    setIsConnected(false);
+  const handleClose = () => {
     onOpenChange(false);
-    setUpdatedIntegrations(
-      updatedIntegrations.filter((item) => item !== integration?.name)
-    );
-    toast({
-      title: "Disconnected from " + integration?.name,
-      description: `You are now not connected to ${integration?.name}`,
-    });
+    setConnectionName("");
+    setApiKey("");
+    setError({ connectionName: "", apiKey: "" });
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[430px] p-6 bg-navy text-white border-0">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[430px] p-6 bg-gray-800 text-white border-0">
         <DialogHeader className="mb-1">
-          <DialogTitle className="text-xl font-medium tracking-wide capitalize">
+          <DialogTitle className="text-xl font-medium tracking-wide pr-3">
             Connect to {integration?.name}
           </DialogTitle>
         </DialogHeader>
+
         <div className="flex flex-col gap-4">
           <div className="space-y-2">
             <Label
@@ -147,7 +150,7 @@ export default function ConnectionModal({
               <CustomInput
                 id="connection-name"
                 value={connectionName}
-                className="pr-10"
+                className="pr-10 text-gray-300 tracking-wide !text-base"
                 onChange={handleConnectionNameChange}
                 placeholder="Connection name"
                 tabIndex={-1}
@@ -185,15 +188,15 @@ export default function ConnectionModal({
                 id="api-key"
                 type={showApiKey ? "text" : "password"}
                 value={apiKey}
-                className="pr-20"
+                className="pr-20 text-gray-300 tracking-wide !text-base"
                 onChange={handleApiKeyChange}
-                placeholder="API key"
+                placeholder="Your API key"
               />
-              <div className="absolute right-0 top-2 h-full flex">
+              <div className="absolute right-0 top-1 h-full flex">
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="px-3 hover:bg-transparent"
+                  className="px-2 hover:bg-transparent"
                   onClick={() => setShowApiKey(!showApiKey)}
                 >
                   {showApiKey ? (
@@ -224,30 +227,17 @@ export default function ConnectionModal({
 
         <Button
           variant="default"
-          className="w-full text-base py-5 mt-3"
+          className="w-full text-base py-5 mt-2"
           onClick={handleConnect}
           disabled={
-            isLoading || ["intect", "planday"].includes(integration?.name || "")
+            isLoading ||
+            !apiKey ||
+            !connectionName ||
+            ["intect", "planday"].includes(integration?.name || "")
           }
         >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : isConnected ? (
-            "Update connection"
-          ) : (
-            "Connect"
-          )}
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Connect"}
         </Button>
-
-        {isConnected && (
-          <Button
-            variant="destructive"
-            className="w-full text-base py-5"
-            onClick={handleDisconnect}
-          >
-            Disconnect
-          </Button>
-        )}
       </DialogContent>
     </Dialog>
   );

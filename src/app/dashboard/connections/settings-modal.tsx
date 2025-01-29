@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Check, Copy, Eye, EyeOff } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ConnectionCardProps } from "./lib";
 import { Separator } from "@/components/ui/separator";
@@ -22,6 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAppContext } from "@/context";
+import { updateOrganizationConnections } from "@/lib/supabase/actions";
+import { toast } from "@/hooks/use-toast";
 
 interface SettingsModalProps {
   open: boolean;
@@ -34,6 +37,8 @@ export default function SettingsModal({
   onOpenChange,
   connection,
 }: SettingsModalProps) {
+  const { parentOrganization, refetchCurrentOrg } = useAppContext();
+
   const [connectionName, setConnectionName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [syncInterval, setSyncInterval] = useState("monthly");
@@ -43,8 +48,11 @@ export default function SettingsModal({
     apiKey: false,
   });
 
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   useEffect(() => {
-    setConnectionName(connection?.displayName || "");
+    setConnectionName(connection?.name || "");
     setApiKey(connection?.apiKey || "");
     setSyncInterval(connection?.syncInterval || "monthly");
   }, [connection]);
@@ -59,22 +67,90 @@ export default function SettingsModal({
 
   const handleClose = () => {
     onOpenChange(false);
-    setConnectionName(connection?.displayName || "");
+    setConnectionName(connection?.name || "");
     setApiKey(connection?.apiKey || "");
     setSyncInterval(connection?.syncInterval || "monthly");
   };
 
   const isValuesChanged =
-    connectionName !== connection?.displayName ||
+    connectionName !== connection?.name ||
     apiKey !== connection?.apiKey ||
     syncInterval !== connection?.syncInterval;
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const updatedConnections = parentOrganization?.connections?.filter(
+        (conn) => conn.name !== connection?.name
+      );
+
+      await updateOrganizationConnections(
+        parentOrganization?.id || "",
+        updatedConnections || []
+      );
+
+      refetchCurrentOrg();
+      handleClose();
+
+      toast({
+        title: "Connection deleted",
+        description: "Connection deleted successfully",
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      toast({
+        title: "Error deleting connection",
+        description: errorMessage,
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsUpdating(true);
+    try {
+      const updatedConnections = parentOrganization?.connections?.map((conn) =>
+        conn.name === connection?.name
+          ? {
+              ...conn,
+              name: connectionName,
+              apiKey: apiKey,
+              syncInterval: syncInterval,
+            }
+          : conn
+      );
+
+      await updateOrganizationConnections(parentOrganization?.id || "", [
+        ...(updatedConnections || []),
+      ]);
+
+      refetchCurrentOrg();
+      handleClose();
+
+      toast({
+        title: "Connection updated",
+        description: "Connection updated successfully",
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      toast({
+        title: "Error updating connection",
+        description: errorMessage,
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[440px] p-6 bg-gray-800 text-white border-0">
         <DialogHeader className="mb-2">
           <DialogTitle className="text-xl font-medium tracking-wide pr-3">
-            Settings for {connection?.displayName}
+            Settings for {connection?.name}
           </DialogTitle>
         </DialogHeader>
 
@@ -194,10 +270,28 @@ export default function SettingsModal({
 
             <Button
               variant="default"
-              disabled={!isValuesChanged}
+              disabled={!isValuesChanged || isUpdating || isDeleting}
               className="w-full text-base py-5 bg-blue-700 hover:bg-blue-800"
+              onClick={handleSave}
             >
-              Save
+              {isUpdating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Save"
+              )}
+            </Button>
+
+            <Button
+              variant="destructive"
+              className="w-full text-base py-5 bg-red-700 hover:bg-red-800"
+              onClick={handleDelete}
+              disabled={isDeleting || isUpdating}
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Delete"
+              )}
             </Button>
           </div>
         </DialogFooter>

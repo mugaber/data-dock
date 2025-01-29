@@ -1,5 +1,5 @@
 import { User } from "@supabase/supabase-js";
-import { Organization } from "../types";
+import { Organization, Connection } from "../types";
 import { supabase } from "./client";
 
 export {
@@ -11,6 +11,7 @@ export {
   updateOrganization,
   addMemberToOrganization,
   removeMembersFromOrganization,
+  updateOrganizationConnections,
 };
 
 const getParentOrganization = async (userId: string) => {
@@ -24,7 +25,8 @@ const getParentOrganization = async (userId: string) => {
 				owner,
 				members,
 				created_at,
-				updated_at
+				updated_at,
+        connections
 			)
 		`
     )
@@ -88,6 +90,21 @@ const updateOrganization = async (
     .eq("id", organizationId);
   if (error) throw error;
   return data;
+};
+
+const updateOrganizationConnections = async (
+  organizationId: string,
+  connections: Connection[]
+) => {
+  const { error } = await supabase
+    .from("organizations")
+    .update({
+      connections: JSON.stringify(connections),
+    })
+    .eq("id", organizationId);
+
+  if (error) throw error;
+  return { success: true };
 };
 
 // MEMBERS

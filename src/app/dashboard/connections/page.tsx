@@ -4,11 +4,13 @@ import { Search } from "lucide-react";
 import { CustomInput } from "@/components/custom";
 import SettingsModal from "./settings-modal";
 import { useState } from "react";
-import { ConnectionCardProps, connections } from "./lib";
+import { ConnectionCardProps } from "./lib";
 import ConnectionCard from "./connection-card";
 import DockModal from "./dock-modal";
+import { useAppContext } from "@/context";
 
 export default function Connections() {
+  const { parentOrganization } = useAppContext();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDockOpen, setIsDockOpen] = useState(false);
   const [selectedConnection, setSelectedConnection] =
@@ -44,10 +46,11 @@ export default function Connections() {
         </div>
 
         <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {connections.map((connection) => (
+          {parentOrganization?.connections?.map((connection) => (
             <ConnectionCard
-              key={connection.id}
-              {...connection}
+              key={connection.name}
+              name={connection.name}
+              type={connection.type}
               onEdit={() => handleEdit(connection)}
               onDock={() => handleDock(connection)}
             />

@@ -1,25 +1,13 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import Image from "next/image";
 import { IntegrationCardProps } from "./lib";
-import { connectionStorage } from "../utils/connections";
-import { useAppContext } from "@/context";
 
 export default function IntegrationCard({
   name,
   type,
   onEdit,
-  updatedIntegrations,
 }: IntegrationCardProps) {
-  const [isConnected, setIsConnected] = useState(false);
-  const { parentOrganization } = useAppContext();
-
-  useEffect(() => {
-    const isConnected = connectionStorage(name, parentOrganization?.id)?.apiKey;
-    setIsConnected(!!isConnected);
-  }, [name, updatedIntegrations?.length, parentOrganization?.id]);
-
   return (
     <Card className="bg-gray-800 border-none">
       <CardHeader className="flex flex-row justify-between">
@@ -44,7 +32,7 @@ export default function IntegrationCard({
           className="w-full text-base py-5"
           onClick={onEdit}
         >
-          {isConnected ? "Connected" : "Connect"}
+          Connect
         </Button>
       </CardContent>
     </Card>

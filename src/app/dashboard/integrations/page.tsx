@@ -11,7 +11,6 @@ export default function Integrations() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedIntegration, setSelectedIntegration] =
     useState<IntegrationCardProps | null>(null);
-  const [updatedIntegrations, setUpdatedIntegrations] = useState<string[]>([]);
 
   const handleEdit = (integration: IntegrationCardProps) => {
     setSelectedIntegration(integration);
@@ -22,13 +21,13 @@ export default function Integrations() {
     <div className="mx-auto max-w-[1400px] p-6 text-lg">
       <div className="flex flex-col gap-6">
         <div>
-          <h1 className="text-2xl font-semibold">Integrations</h1>
+          <h1 className="text-2xl font-semibold mb-2">Integrations</h1>
           <p className="text-base text-gray-300">
             Connect to new services and platforms
           </p>
         </div>
 
-        <div className="relative">
+        <div className="relative mb-2">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <CustomInput
             type="text"
@@ -43,7 +42,6 @@ export default function Integrations() {
               key={integration.id}
               {...integration}
               onEdit={() => handleEdit(integration)}
-              updatedIntegrations={updatedIntegrations}
             />
           ))}
         </div>
@@ -52,8 +50,6 @@ export default function Integrations() {
           open={modalOpen}
           onOpenChange={setModalOpen}
           integration={selectedIntegration}
-          updatedIntegrations={updatedIntegrations}
-          setUpdatedIntegrations={setUpdatedIntegrations}
         />
       </div>
     </div>
