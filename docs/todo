@@ -16,6 +16,7 @@
 - [ ] Add toast notifications for success/error states
 - [ ] Make forms accessible with ARIA labels
 - [ ] Add keyboard navigation support
+- [ ] Add a loading state to the context and use it in the sidebar and connections page
 
 ## Security
 
@@ -40,3 +41,4 @@
 - [ ] Use `react-hook-form` for creating forms
 - [ ] Use ORM and create a database schema
 - [ ] Use a more robust state management (Zustand | Redux | Jotai)
+- [ ] Stop using `jszip` and use a more lightweight method to export CSV files

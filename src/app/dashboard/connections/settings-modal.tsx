@@ -182,7 +182,7 @@ export default function SettingsModal({
                 id="api-key"
                 type={showAPIKey ? "text" : "password"}
                 className={cn(
-                  "!bg-gray-700 text-gray-300 py-5 !text-base",
+                  "!bg-gray-700 text-gray-300 py-5 !text-base pr-20",
                   showAPIKey ? "tracking-wide" : "tracking-widest"
                 )}
                 value={apiKey}

@@ -10,11 +10,19 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Copy, Eye, EyeOff } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { ConnectionCardProps } from "./lib";
+import {
+  ConnectionCardProps,
+  fetchForecastData,
+  FORECAST_ENDPOINTS,
+} from "./lib";
 import { Separator } from "@/components/ui/separator";
+import { convertToCSV } from "../utils/csv";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
+import { toast } from "@/hooks/use-toast";
 
 interface DockModalProps {
   open: boolean;
@@ -35,12 +43,61 @@ export default function DockModal({
     password: false,
   });
 
+  const [isExportingCSV, setIsExportingCSV] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+
   const handleCopy = async (text: string, field: keyof typeof copiedStates) => {
     await navigator.clipboard.writeText(text);
     setCopiedStates((prev) => ({ ...prev, [field]: true }));
     setTimeout(() => {
       setCopiedStates((prev) => ({ ...prev, [field]: false }));
     }, 500);
+  };
+
+  const handleExportToCSV = async () => {
+    setIsExportingCSV(true);
+    setExportProgress(0);
+
+    try {
+      const { forecastData } = await fetchForecastData(
+        FORECAST_ENDPOINTS,
+        connection?.apiKey || "",
+        (progress) => setExportProgress(progress)
+      );
+
+      const zip = new JSZip();
+
+      forecastData?.map((item) => {
+        if (Array.isArray(item.data) || item?.data) {
+          const content = Array.isArray(item.data) ? item.data : item.data;
+          const csvContent = convertToCSV(content as Record<string, unknown>[]);
+
+          zip.file(`${item.name}.csv`, csvContent);
+        }
+      });
+
+      setExportProgress(95);
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      setExportProgress(100);
+      const filename = `${connection?.name}_${new Date().toISOString()}.zip`;
+      saveAs(zipBlob, filename);
+
+      toast({
+        title: "Success",
+        description: "CSV file exported successfully",
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsExportingCSV(false);
+      setExportProgress(0);
+    }
   };
 
   return (
@@ -189,6 +246,7 @@ export default function DockModal({
           <div className="flex flex-col gap-4 w-full">
             <Button
               variant="default"
+              disabled={isExportingCSV}
               className="w-full text-base py-5 bg-green-800 hover:bg-green-900"
             >
               Connect to Google Sheets
@@ -196,9 +254,31 @@ export default function DockModal({
             <Button
               variant="default"
               className="w-full text-base py-5 bg-blue-700 hover:bg-blue-800"
+              onClick={handleExportToCSV}
+              disabled={isExportingCSV}
             >
-              Export to CSV
+              {isExportingCSV ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Export to CSV"
+              )}
             </Button>
+
+            {isExportingCSV && (
+              <div className="mt-4">
+                <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-600 transition-all duration-300 ease-in-out"
+                    style={{ width: `${exportProgress}%` }}
+                  />
+                </div>
+                <p className="text-sm text-gray-600 mt-1 text-center">
+                  {exportProgress < 100
+                    ? `Exporting data (${Math.round(exportProgress)}%)`
+                    : "Finalizing export..."}
+                </p>
+              </div>
+            )}
           </div>
         </DialogFooter>
       </DialogContent>

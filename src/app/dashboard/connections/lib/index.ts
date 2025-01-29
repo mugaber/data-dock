@@ -1,4 +1,6 @@
-import { FORECAST_ENDPOINTS, EndpointData } from "./forecast";
+import { fetchForecastData, FORECAST_ENDPOINTS } from "./forecast";
+
+export { FORECAST_ENDPOINTS, fetchForecastData };
 
 export interface ConnectionCardProps {
   type: string;
@@ -8,6 +10,3 @@ export interface ConnectionCardProps {
   onEdit?: () => void;
   onDock?: () => void;
 }
-
-export type { EndpointData };
-export { FORECAST_ENDPOINTS };
