@@ -1,5 +1,5 @@
 import { User } from "@supabase/supabase-js";
-import { Organization, Connection } from "../types";
+import { Organization, Connection, Invitation } from "../types";
 import { supabase } from "./client";
 
 export {
@@ -12,6 +12,7 @@ export {
   addMemberToOrganization,
   removeMembersFromOrganization,
   updateOrganizationConnections,
+  updateOrganizationInvitations,
 };
 
 const getParentOrganization = async (userId: string) => {
@@ -26,7 +27,8 @@ const getParentOrganization = async (userId: string) => {
 				members,
 				created_at,
 				updated_at,
-        connections
+        connections,
+        invitations
 			)
 		`
     )
@@ -34,7 +36,7 @@ const getParentOrganization = async (userId: string) => {
     .single();
 
   if (error) throw error;
-  return data.organizations;
+  return data.organizations as unknown as Organization;
 };
 
 const getAllUsers = async () => {
@@ -107,13 +109,26 @@ const updateOrganizationConnections = async (
   return { success: true };
 };
 
+const updateOrganizationInvitations = async (
+  organizationId: string,
+  invitations: Invitation[]
+) => {
+  const { error } = await supabase
+    .from("organizations")
+    .update({ invitations: JSON.stringify(invitations) })
+    .eq("id", organizationId);
+
+  if (error) throw error;
+  return { success: true };
+};
+
 // MEMBERS
 
 const addMemberToOrganization = async (
-  userId: string,
+  userIds: string[],
   organizationId: string
 ) => {
-  if (!userId || !organizationId) return;
+  if (!userIds?.length || !organizationId) return;
 
   const { data: orgData, error: fetchError } = await supabase
     .from("organizations")
@@ -125,7 +140,7 @@ const addMemberToOrganization = async (
     return Error("Error fetching organization");
   }
 
-  const updatedMembers = [...orgData.members, userId];
+  const updatedMembers = [...orgData.members, ...userIds];
 
   const { error: updateOrgError } = await supabase
     .from("organizations")

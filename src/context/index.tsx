@@ -11,6 +11,7 @@ import { CurrentUser, Organization } from "@/lib/types";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { processOrgData } from "./utils";
 
 interface AppContextType {
   currentUser: CurrentUser | null;
@@ -79,10 +80,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const fetchOrgData = async () => {
       if (!currentUser?.id) return;
       const orgData = await getParentOrganization(currentUser?.id);
-      // @ts-expect-error - TODO: Update Organization type
-      const connections = JSON.parse(orgData?.connections || "[]");
-      // @ts-expect-error - TODO: Update Organization type
-      setParentOrganization({ ...orgData, connections });
+      const processedOrgData = processOrgData(orgData);
+      setParentOrganization(processedOrgData);
     };
     fetchOrgData();
   }, [currentUser?.id, refetchOrg]);

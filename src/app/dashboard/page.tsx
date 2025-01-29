@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { connectionsPath } from "@/lib/paths";
+import { integrationsPath } from "@/lib/paths";
 
 export default function Dashboard() {
-  redirect(connectionsPath());
+  redirect(integrationsPath());
 }

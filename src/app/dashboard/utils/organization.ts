@@ -9,6 +9,7 @@ type MemberWithoutType = User & {
   organizations: {
     owner: string;
   };
+  invited?: boolean;
 };
 
 export type Member = MemberWithoutType & {

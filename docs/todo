@@ -42,3 +42,9 @@
 - [ ] Use ORM and create a database schema
 - [ ] Use a more robust state management (Zustand | Redux | Jotai)
 - [ ] Stop using `jszip` and use a more lightweight method to export CSV files
+
+## Invitations
+
+- [ ] Move invitations to a separate table
+- [ ] Add expiration date to invitations
+- [ ] Add sync invitations as a cron job

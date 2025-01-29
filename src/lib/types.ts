@@ -6,13 +6,14 @@ export type CurrentUser = {
 };
 
 export type Organization = {
-  id: string;
+  id?: string;
   name?: string;
   owner?: string;
   members?: string[];
   created_at?: string;
   updated_at?: string;
   connections?: Connection[];
+  invitations?: Invitation[];
 };
 
 export type Member = {
@@ -25,4 +26,8 @@ export type Connection = {
   name: string;
   apiKey: string;
   syncInterval?: string;
+};
+
+export type Invitation = {
+  email: string;
 };

@@ -13,7 +13,10 @@ import { Loader2, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppContext } from "@/context";
-import { addMemberToOrganization } from "@/lib/supabase/actions";
+import {
+  addMemberToOrganization,
+  updateOrganizationInvitations,
+} from "@/lib/supabase/actions";
 import { useToast } from "@/hooks/use-toast";
 
 export default function MembersModal() {
@@ -25,9 +28,26 @@ export default function MembersModal() {
   const { toast } = useToast();
 
   const handleAddMember = async () => {
-    const newUser = allUsers.find((user) => user.email === email);
+    const foundUser = allUsers.find((user) => user.email === email);
+    const isUserInvited = parentOrganization?.invitations?.find(
+      (invitation) => invitation.email === email
+    );
+
+    if (isUserInvited) {
+      toast({
+        title: "Warning",
+        description: "The user is already invited to the organization",
+      });
+      return;
+    }
+
+    if (!foundUser) {
+      await inviteUser(email);
+      return;
+    }
+
     const isUserAlreadyInOrg = parentOrganization?.members?.includes(
-      newUser?.id ?? ""
+      foundUser?.id ?? ""
     );
 
     if (isUserAlreadyInOrg) {
@@ -39,30 +59,80 @@ export default function MembersModal() {
     }
 
     setLoading(true);
+
     try {
       await addMemberToOrganization(
-        newUser?.id || "",
+        [foundUser?.id || ""],
         parentOrganization?.id || ""
       );
+
       refetchAllUsers();
       refetchCurrentOrg();
+
       toast({
         title: "Member added",
         description: "The member has been added to the organization",
       });
-      setOpen(false);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "An error occurred";
       toast({
         title: "Error",
         description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setEmail("");
+      setOpen(false);
+    }
+  };
+
+  async function inviteUser(email: string) {
+    setLoading(true);
+
+    try {
+      const response = await fetch("/dashboard/api/invitations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          organizationName: parentOrganization?.name,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error);
+      }
+
+      await updateOrganizationInvitations(parentOrganization?.id ?? "", [
+        ...(parentOrganization?.invitations ?? []),
+        { email },
+      ]);
+
+      refetchCurrentOrg();
+
+      toast({
+        title: "Invitation sent",
+        description: "The invitation has been sent to the user",
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to send invitation";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
       });
     } finally {
       setEmail("");
+      setOpen(false);
       setLoading(false);
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

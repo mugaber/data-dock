@@ -14,15 +14,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Loader2, MoreHorizontal, Trash2 } from "lucide-react";
+import { Loader2, MailCheck, MoreHorizontal, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CustomCheckbox } from "@/components/custom";
 import { CustomTableHead } from "@/components/custom/table";
 import { useAppContext } from "@/context";
-import { getOrgMembers } from "../utils";
+import { getOrgMembers, getInvitationsUsers } from "../utils";
 import MembersModal from "./members-modal";
-import { removeMembersFromOrganization } from "@/lib/supabase/actions";
+import {
+  removeMembersFromOrganization,
+  updateOrganizationInvitations,
+} from "@/lib/supabase/actions";
 import { toast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Invitation } from "@/lib/types";
+import { useSyncInvitations } from "../hooks";
 
 export function TeamSection() {
   const { parentOrganization, allUsers, refetchAllUsers, refetchCurrentOrg } =
@@ -30,21 +36,28 @@ export function TeamSection() {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
+  useSyncInvitations();
+
+  const invitationsUsers = getInvitationsUsers(parentOrganization ?? {});
+
   const orgMembers = getOrgMembers(
     allUsers,
     parentOrganization?.members,
     parentOrganization?.owner ?? ""
   );
 
-  const sortedOrgMembers = orgMembers?.sort((a, b) => {
-    if (a.type === "owner") return -1;
-    if (b.type === "owner") return 1;
-    return 0;
-  });
-
-  const membersWithoutOwner = orgMembers?.filter(
-    (member) => member?.type !== "owner"
+  const sortedOrgMembers = [...orgMembers, ...invitationsUsers]?.sort(
+    (a, b) => {
+      if (a.type === "owner") return -1;
+      if (b.type === "owner") return 1;
+      return 0;
+    }
   );
+
+  const membersWithoutOwner = [
+    ...orgMembers?.filter((member) => member?.type !== "owner"),
+    ...invitationsUsers,
+  ];
 
   const handleCheckboxChange = (memberId: string) => {
     setSelectedMembers((prev) =>
@@ -62,17 +75,36 @@ export function TeamSection() {
     setSelectedMembers(membersWithoutOwner.map((member) => member.id));
   };
 
-  const handleRemoveMembers = async (members: string[]) => {
+  const handleRemoveMembers = async (membersToRemove: string[]) => {
     setLoading(true);
+
     try {
+      const invitationsToRemove = parentOrganization?.invitations?.filter(
+        (invitation) => membersToRemove.includes(invitation.email)
+      );
+      const finalMembersToRemove = membersToRemove.filter(
+        (member) =>
+          !invitationsToRemove
+            ?.map((invitation) => invitation.email)
+            .includes(member)
+      );
+
+      if (invitationsToRemove?.length) {
+        await handleRemoveInvitations(invitationsToRemove);
+      }
+
+      if (!finalMembersToRemove?.length) return;
+
       await removeMembersFromOrganization(
         parentOrganization?.id ?? "",
-        members
+        finalMembersToRemove
       );
+
       toast({
         title: "Members removed",
         description: "The members have been removed from the organization",
       });
+
       setSelectedMembers([]);
       refetchAllUsers();
       refetchCurrentOrg();
@@ -83,6 +115,38 @@ export function TeamSection() {
         title: "Error",
         description: errorMessage,
       });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveInvitations = async (
+    invitationsToRemove: Invitation[] | undefined
+  ) => {
+    try {
+      const updatedInvitations = parentOrganization?.invitations?.filter(
+        (invitation) =>
+          !invitationsToRemove
+            ?.map((inv) => inv.email)
+            .includes(invitation.email)
+      );
+
+      await updateOrganizationInvitations(
+        parentOrganization?.id ?? "",
+        updatedInvitations ?? []
+      );
+
+      refetchCurrentOrg();
+      setSelectedMembers([]);
+
+      toast({
+        title: "Invitations removed",
+        description: "The invitations have been removed from the organization",
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An error occurred";
+      toast({ title: "Error", description: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -149,6 +213,14 @@ export function TeamSection() {
                     <AvatarFallback>{member?.full_name?.[0]}</AvatarFallback>
                   </Avatar>
                   <span>{member?.full_name}</span>
+                  {member.invited && (
+                    <Badge className="bg-blue-700/70 text-blue-300 flex items-center gap-1">
+                      <MailCheck className="h-4 w-4" />
+                      <span className="flex items-center gap-1 text-sm">
+                        Mail sent
+                      </span>
+                    </Badge>
+                  )}
                 </div>
               </TableCell>
               <TableCell className="text-white capitalize">
