@@ -29,6 +29,7 @@ import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Invitation } from "@/lib/types";
 import { useSyncInvitations } from "../hooks";
+import MemberRowSkeleton from "@/components/member-row-skeleton";
 
 export function TeamSection() {
   const { parentOrganization, allUsers, refetchAllUsers, refetchCurrentOrg } =
@@ -157,19 +158,24 @@ export function TeamSection() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Team</h2>
 
-        {selectedMembers.length ? (
-          <Button
-            variant="destructive"
-            className="text-base"
-            disabled={loading}
-            onClick={() => handleRemoveMembers(selectedMembers)}
-          >
-            <Trash2 className="mr-1 h-4 w-4" />
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remove"}
-          </Button>
-        ) : (
-          <MembersModal />
-        )}
+        {!!parentOrganization?.id &&
+          (selectedMembers.length ? (
+            <Button
+              variant="destructive"
+              className="text-base"
+              disabled={loading}
+              onClick={() => handleRemoveMembers(selectedMembers)}
+            >
+              <Trash2 className="mr-1 h-4 w-4" />
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Remove"
+              )}
+            </Button>
+          ) : (
+            <MembersModal />
+          ))}
       </div>
 
       <Table>
@@ -228,7 +234,7 @@ export function TeamSection() {
               </TableCell>
               <TableCell className="text-gray-400">{member.email}</TableCell>
 
-              <TableCell className="flex justify-center">
+              <TableCell className="flex justify-center mt-1">
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     asChild
@@ -259,6 +265,11 @@ export function TeamSection() {
               </TableCell>
             </TableRow>
           ))}
+
+          {!sortedOrgMembers?.length &&
+            Array(3)
+              .fill(0)
+              .map((_, index) => <MemberRowSkeleton key={index} />)}
         </TableBody>
       </Table>
     </div>

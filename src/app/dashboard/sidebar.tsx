@@ -4,7 +4,6 @@ import {
   Settings,
   Link as Link2,
   ChevronsUpDown,
-  Ellipsis,
   Database,
 } from "lucide-react";
 import {
@@ -26,6 +25,7 @@ import { signout } from "../auth/actions";
 import { useRouter } from "next/navigation";
 import { settingsPath, connectionsPath, integrationsPath } from "@/lib/paths";
 import { useAppContext } from "@/context";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const menuItems = [
   { icon: Database, label: "Integrations", path: integrationsPath() },
@@ -64,18 +64,18 @@ export function AppSidebar() {
   return (
     <Sidebar className="p-4 bg-gray-800 text-white border-none">
       <SidebarContent>
-        <div className="p-2 flex items-center justify-between">
-          <h1 className="text-xl font-semibold truncate">
-            {parentOrganization ? (
-              parentOrganization.name
-            ) : (
-              <div className="flex min-h-7 items-center">
-                <Ellipsis className="w-6 h-6 text-gray-400 animate-cpulse" />
-              </div>
-            )}
-          </h1>
-          <ChevronsUpDown className="w-5 h-5 text-gray-400" />
-        </div>
+        {parentOrganization ? (
+          <div className="p-2 w-full flex items-center justify-between">
+            <h1 className="text-xl font-semibold truncate">
+              {parentOrganization.name}
+            </h1>
+            <ChevronsUpDown className="w-5 h-5 text-gray-400" />
+          </div>
+        ) : (
+          <div className="flex w-full h-11 items-center pr-8">
+            <Skeleton className="h-4 w-full bg-gray-700" />
+          </div>
+        )}
         <Separator className="mb-4 bg-gray-700" />
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
@@ -115,25 +115,31 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <div className="mt-5 flex items-center gap-3">
-        <Avatar>
-          <AvatarImage src={currentUser?.avatar_url} />
-          <AvatarFallback>CN</AvatarFallback>
-        </Avatar>
-        <div>
-          {currentUser ? (
+      {currentUser ? (
+        <div className="mt-5 flex items-center gap-3">
+          <Avatar>
+            <AvatarImage src={currentUser?.avatar_url} />
+            <AvatarFallback>CN</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col items-start gap-1">
             <p className="text-sm truncate">{currentUser?.full_name}</p>
-          ) : (
-            <Ellipsis className="w-5 h-5 text-gray-400 animate-cpulse" />
-          )}
-          <button
-            onClick={() => logout()}
-            className="text-sm text-gray-400 hover:text-white"
-          >
-            Logout
-          </button>
+            <button
+              onClick={() => logout()}
+              className="text-sm text-gray-400 hover:text-white"
+            >
+              Logout
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-center space-x-2">
+          <Skeleton className="h-12 w-12 bg-gray-700 rounded-full" />
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-[100px] bg-gray-700" />
+            <Skeleton className="h-3 w-[50px] bg-gray-700" />
+          </div>
+        </div>
+      )}
     </Sidebar>
   );
 }

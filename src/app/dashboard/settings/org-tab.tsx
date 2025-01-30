@@ -10,6 +10,7 @@ import { useAppContext } from "@/context";
 import { useToast } from "@/hooks/use-toast";
 import { updateOrganization } from "@/lib/supabase/actions";
 import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function OrganizationTab() {
   const { parentOrganization, setParentOrganization } = useAppContext();
@@ -100,14 +101,22 @@ export default function OrganizationTab() {
             </>
           ) : (
             <div className="flex justify-between items-center">
-              <h3 className="text-lg">{orgName}</h3>
-              <Button
-                size="sm"
-                className="text-base"
-                onClick={() => setOrgEditState({ loading: false, show: true })}
-              >
-                Edit
-              </Button>
+              {!orgName ? (
+                <Skeleton className="h-4 w-40 bg-gray-700 mt-2 mb-2" />
+              ) : (
+                <>
+                  <h3 className="text-lg">{orgName}</h3>
+                  <Button
+                    size="sm"
+                    className="text-base"
+                    onClick={() =>
+                      setOrgEditState({ loading: false, show: true })
+                    }
+                  >
+                    Edit
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </div>

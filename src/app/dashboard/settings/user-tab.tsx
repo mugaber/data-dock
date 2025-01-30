@@ -9,6 +9,7 @@ import { useAppContext } from "@/context";
 import { updateUser } from "@/lib/supabase/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 export default function UserTab() {
   const { currentUser, setCurrentUser, refetchAllUsers } = useAppContext();
   const [editState, setEditState] = useState({
@@ -114,20 +115,31 @@ export default function UserTab() {
             <div className="flex justify-between items-center">
               <div className="flex flex-col">
                 <p className="text-sm text-gray-400">Name</p>
-                <h3 className="text-lg">{userName}</h3>
+                {userName ? (
+                  <h3 className="text-lg">{userName}</h3>
+                ) : (
+                  <Skeleton className="h-4 w-40 bg-gray-700 mt-2 mb-1" />
+                )}
               </div>
-              <Button
-                size="sm"
-                className="text-base"
-                onClick={() => setEditState({ show: true, loading: false })}
-              >
-                Edit
-              </Button>
+
+              {userName && (
+                <Button
+                  size="sm"
+                  className="text-base"
+                  onClick={() => setEditState({ show: true, loading: false })}
+                >
+                  Edit
+                </Button>
+              )}
             </div>
 
             <div className="flex flex-col">
               <p className="text-sm text-gray-400">Email</p>
-              <h3 className="text-lg">{userEmail}</h3>
+              {userEmail ? (
+                <h3 className="text-lg">{userEmail}</h3>
+              ) : (
+                <Skeleton className="h-4 w-72 bg-gray-700 mt-2 mb-1" />
+              )}
             </div>
           </div>
         )}

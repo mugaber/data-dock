@@ -2,12 +2,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import Image from "next/image";
 import { IntegrationCardProps } from "./lib";
+import { useAppContext } from "@/context";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function IntegrationCard({
   name,
   type,
   onEdit,
 }: IntegrationCardProps) {
+  const { parentOrganization } = useAppContext();
+
   return (
     <Card className="bg-gray-800 border-none">
       <CardHeader className="flex flex-row justify-between">
@@ -27,13 +31,17 @@ export default function IntegrationCard({
         </span>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <Button
-          variant="default"
-          className="w-full text-base py-5"
-          onClick={onEdit}
-        >
-          Connect
-        </Button>
+        {parentOrganization?.id ? (
+          <Button
+            variant="default"
+            className="w-full text-base py-5"
+            onClick={onEdit}
+          >
+            Connect
+          </Button>
+        ) : (
+          <Skeleton className="w-full h-10 bg-gray-700" />
+        )}
       </CardContent>
     </Card>
   );
