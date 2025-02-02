@@ -76,7 +76,7 @@ const handleMultiplePages = async (
   data: ForecastData,
   path: string,
   apiKey: string,
-  onProgress: (progress: number) => void
+  onProgress?: (progress: number) => void
 ) => {
   if (Array.isArray(data)) {
     return data;
@@ -117,7 +117,7 @@ const handleMultiplePages = async (
 export const fetchForecastData = async (
   endpoints: EndpointData[],
   apiKey: string,
-  onProgress: (progress: number) => void
+  onProgress?: (progress: number) => void
 ) => {
   const promises = [];
   const forecastData = [];

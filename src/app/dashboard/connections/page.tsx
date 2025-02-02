@@ -57,6 +57,7 @@ export default function Connections() {
               key={connection.name}
               name={connection.name}
               type={connection.type}
+              apiKey={connection.apiKey}
               onEdit={() => handleEdit(connection)}
               onDock={() => handleDock(connection)}
             />

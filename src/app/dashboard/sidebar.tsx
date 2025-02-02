@@ -121,7 +121,7 @@ export function AppSidebar() {
             <AvatarImage src={currentUser?.avatar_url} />
             <AvatarFallback>CN</AvatarFallback>
           </Avatar>
-          <div className="flex flex-col items-start gap-1">
+          <div className="flex flex-col items-start gap-1 truncate">
             <p className="text-sm truncate">{currentUser?.full_name}</p>
             <button
               onClick={() => logout()}

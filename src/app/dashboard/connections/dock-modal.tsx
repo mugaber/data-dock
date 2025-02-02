@@ -23,6 +23,8 @@ import { convertToCSV } from "../utils/csv";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { toast } from "@/hooks/use-toast";
+import { useAppContext } from "@/context";
+import { downloadFile, uploadFile } from "@/lib/supabase/buckets";
 
 interface DockModalProps {
   open: boolean;
@@ -35,6 +37,8 @@ export default function DockModal({
   onOpenChange,
   connection,
 }: DockModalProps) {
+  const { parentOrganization } = useAppContext();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showUsername, setShowUsername] = useState(false);
   const [copiedStates, setCopiedStates] = useState({
@@ -59,6 +63,18 @@ export default function DockModal({
     setExportProgress(0);
 
     try {
+      const bucketName = "forecast-exports";
+      const filename = `${connection?.name}.zip`;
+      const filePath = `${parentOrganization?.id}/${filename}`;
+
+      const { data } = await downloadFile(filePath, bucketName);
+
+      if (data) {
+        const blob = new Blob([data], { type: "application/zip" });
+        saveAs(blob, filename);
+        return;
+      }
+
       const { forecastData } = await fetchForecastData(
         FORECAST_ENDPOINTS,
         connection?.apiKey || "",
@@ -79,12 +95,18 @@ export default function DockModal({
       setExportProgress(95);
       const zipBlob = await zip.generateAsync({ type: "blob" });
       setExportProgress(100);
-      const filename = `${connection?.name}_${new Date().toISOString()}.zip`;
+
       saveAs(zipBlob, filename);
 
-      toast({
-        title: "Success",
-        description: "CSV file exported successfully",
+      const file = new File([zipBlob], filename, {
+        type: "application/zip",
+      });
+
+      uploadFile(file, filePath, bucketName).then(() => {
+        toast({
+          title: "Success",
+          description: "CSV file uploaded to the server successfully",
+        });
       });
     } catch (error) {
       const errorMessage =
@@ -260,7 +282,7 @@ export default function DockModal({
               {isExportingCSV ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                "Export to CSV"
+                "Export as CSV"
               )}
             </Button>
 
