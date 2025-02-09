@@ -39,3 +39,14 @@ export async function downloadFile(filePath: string, bucketName: string) {
     return { error: errorMessage };
   }
 }
+
+export async function deleteFile(filePath: string, bucketName: string) {
+  const { error } = await supabase.storage.from(bucketName).remove([filePath]);
+
+  if (error) {
+    console.error("Error deleting file:", error);
+    return { error: error.message };
+  } else {
+    return { success: true };
+  }
+}

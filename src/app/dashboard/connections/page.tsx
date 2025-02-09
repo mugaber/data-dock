@@ -9,7 +9,8 @@ import ConnectionCard from "./connection-card";
 import DockModal from "./dock-modal";
 import { useAppContext } from "@/context";
 import { ConnectionLoadingCard } from "@/components/connection-card-skeleton";
-import Image from "next/image";
+// import Image from "next/image";
+
 export default function Connections() {
   const { parentOrganization } = useAppContext();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -58,6 +59,8 @@ export default function Connections() {
               name={connection.name}
               type={connection.type}
               apiKey={connection.apiKey}
+              // @ts-expect-error - TODO: Fix this
+              connectionUrl={connection.connectionUrl}
               onEdit={() => handleEdit(connection)}
               onDock={() => handleDock(connection)}
             />
@@ -66,14 +69,14 @@ export default function Connections() {
 
         {parentOrganization?.connections?.length === 0 && (
           <div className="flex w-full h-full flex-col items-center justify-center gap-8">
-            <Image
+            {/* <Image
               src="/server-status.svg"
               alt="No connections"
               width={500}
               height={500}
               priority
               className="dark:invert"
-            />
+            /> */}
 
             <div className="flex flex-col items-center justify-center w-full text-base">
               <p className="text-gray-400 text-center">

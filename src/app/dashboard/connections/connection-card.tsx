@@ -13,9 +13,10 @@ import { Progress } from "@/components/ui/progress";
 export default function ConnectionCard({
   type,
   name,
+  connectionUrl,
+  apiKey,
   onEdit,
   onDock,
-  apiKey,
 }: ConnectionCardProps) {
   const { parentOrganization } = useAppContext();
   const [syncProgress, setSyncProgress] = useState(0);
@@ -25,9 +26,12 @@ export default function ConnectionCard({
     await handleSync({
       setSyncProgress,
       setIsUploading,
-      connectionName: name,
+      connection: {
+        name,
+        connectionUrl,
+        apiKey,
+      },
       parentOrganizationId: parentOrganization?.id || "",
-      apiKey: apiKey || "",
     });
   };
 
@@ -50,12 +54,12 @@ export default function ConnectionCard({
           <div className="flex gap-1 items-center">
             <Image
               src={`/icons/${type}.svg`}
-              alt={type}
+              alt={type || ""}
               className="h-6 w-6"
               width={24}
               height={24}
             />
-            <p className="text-base text-gray-300 capitalize">{type}</p>
+            <p className="text-base text-gray-300 capitalize">{type || ""}</p>
           </div>
         </div>
       </CardHeader>

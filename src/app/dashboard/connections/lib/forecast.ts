@@ -26,12 +26,12 @@ export const FORECAST_ENDPOINTS: EndpointData[] = [
     name: "time_registrations",
     description: "Get time registrations after date",
   },
-  {
-    path: "/projects/419069/time_registrations",
-    version: "v3",
-    name: "projects_time_registrations",
-    description: "Get project time registrations",
-  },
+  // {
+  //   path: "/projects/419069/time_registrations",
+  //   version: "v3",
+  //   name: "projects_time_registrations",
+  //   description: "Get project time registrations",
+  // },
   {
     path: "/persons",
     version: "v2",
@@ -94,7 +94,7 @@ const handleMultiplePages = async (
 
   for (let i = 0; i < totalPages; i++) {
     promises.push(
-      fetch(`${path}?page=${i + 1}`, {
+      fetch(`${path}?pageNumber=${i + 1}`, {
         headers: {
           "X-FORECAST-API-KEY": apiKey,
         },

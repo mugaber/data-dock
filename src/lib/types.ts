@@ -26,6 +26,8 @@ export type Connection = {
   name: string;
   apiKey: string;
   syncInterval?: string;
+  username?: string;
+  password?: string;
 };
 
 export type Invitation = {

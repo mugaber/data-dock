@@ -25,6 +25,7 @@ import {
 import { useAppContext } from "@/context";
 import { updateOrganizationConnections } from "@/lib/supabase/actions";
 import { toast } from "@/hooks/use-toast";
+import { deleteFile } from "@/lib/supabase/buckets";
 
 interface SettingsModalProps {
   open: boolean;
@@ -80,6 +81,20 @@ export default function SettingsModal({
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
+      const isLastConnection = parentOrganization?.connections?.length === 1;
+      const response = await fetch("/dashboard/api/database", {
+        method: "DELETE",
+        body: JSON.stringify({
+          dbName: connection?.dbName,
+          username: connection?.username,
+          deleteOrgUser: isLastConnection,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete database");
+      }
+
       const updatedConnections = parentOrganization?.connections?.filter(
         (conn) => conn.name !== connection?.name
       );
@@ -89,8 +104,9 @@ export default function SettingsModal({
         updatedConnections || []
       );
 
-      refetchCurrentOrg();
-      handleClose();
+      const bucketName = "forecast-exports";
+      const filePath = `${parentOrganization?.id}/${connection?.name}.zip`;
+      await deleteFile(filePath, bucketName);
 
       toast({
         title: "Connection deleted",
@@ -105,6 +121,8 @@ export default function SettingsModal({
       });
     } finally {
       setIsDeleting(false);
+      refetchCurrentOrg();
+      handleClose();
     }
   };
 

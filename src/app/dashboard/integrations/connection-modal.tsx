@@ -82,44 +82,85 @@ export default function ConnectionModal({
       return;
     }
 
+    const isConnectionExists = parentOrganization?.connections?.some(
+      (conn) => conn.name === connectionName
+    );
+
+    if (isConnectionExists) {
+      handleError("connectionName", "Connection name already exists");
+      return;
+    }
+
+    // TODO: move to using database checks and secure credentials
+    const firstConnection = parentOrganization?.connections?.[0];
+    const userData = {
+      username: firstConnection?.username,
+      password: firstConnection?.password,
+    };
+
     setIsLoading(true);
 
     try {
-      const isConnectionExists = parentOrganization?.connections?.some(
-        (conn) => conn.name === connectionName
-      );
+      const response = await fetch("/dashboard/api/database", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          connectionName,
+          organizationId: parentOrganization?.id || "",
+          userData,
+        }),
+      });
 
-      if (isConnectionExists) {
-        handleError("connectionName", "Connection name already exists");
+      const connectionData = await response.json();
+
+      if (!response.ok) {
+        const errorMessage =
+          connectionData.details ||
+          connectionData.error ||
+          "Failed to create database";
+
+        console.error(errorMessage);
+
+        handleError("connectionName", errorMessage);
         return;
       }
 
+      const newConnection = {
+        type: integration?.name || "",
+        name: connectionName,
+        apiKey: apiKey,
+        syncInterval: "monthly",
+        dbName: connectionData.dbName,
+        username: connectionData.username,
+        password: connectionData.password,
+        connectionUrl: connectionData.connectionUrl,
+      };
+
       await updateOrganizationConnections(parentOrganization?.id || "", [
         ...(parentOrganization?.connections || []),
-        {
-          type: integration?.name || "",
-          name: connectionName,
-          apiKey: apiKey,
-          syncInterval: "monthly",
-        },
+        newConnection,
       ]);
+
+      refetchCurrentOrg();
+      handleClose();
+
+      toast({
+        title: `Added ${integration?.name} connection`,
+        description: "You can now start using the integration",
+      });
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       console.error(error);
       toast({
-        title: "Error connecting to " + integration?.name,
-        description: "Please try again",
+        title: "Integration connection failed",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
     }
-
-    refetchCurrentOrg();
-    handleClose();
-
-    toast({
-      title: `Added ${integration?.name} connection`,
-      description: "You can now start using the integration",
-    });
   };
 
   const handleClose = () => {

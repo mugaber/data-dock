@@ -41,6 +41,7 @@ export default function DockModal({
 
   const [showPassword, setShowPassword] = useState(false);
   const [showUsername, setShowUsername] = useState(false);
+  const [showConnectionUrl, setShowConnectionUrl] = useState(true);
   const [copiedStates, setCopiedStates] = useState({
     server: false,
     username: false,
@@ -102,15 +103,22 @@ export default function DockModal({
         type: "application/zip",
       });
 
-      uploadFile(file, filePath, bucketName).then(() => {
+      uploadFile(file, filePath, bucketName).catch((error) => {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "An error occurred while uploading the file";
         toast({
-          title: "Success",
-          description: "CSV file uploaded to the server successfully",
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
         });
       });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "An unknown error occurred";
+        error instanceof Error
+          ? error.message
+          : "An error occurred while exporting the data";
       toast({
         title: "Error",
         description: errorMessage,
@@ -144,26 +152,43 @@ export default function DockModal({
             <div className="relative">
               <Input
                 id="server"
-                className="bg-gray-800 text-gray-400 border-none py-5 pr-10 !text-base tracking-wide"
-                value="name@example.com"
+                className="bg-gray-800 text-gray-400 border-none py-5 pr-20 !text-base tracking-wide"
+                value={connection?.connectionUrl}
                 tabIndex={-1}
+                type={showConnectionUrl ? "text" : "password"}
                 readOnly
               />
-              <Button
-                size="sm"
-                variant="ghost"
-                className={cn(
-                  "absolute right-0 top-0 h-full px-2 hover:bg-transparent",
-                  "transition-all duration-200"
-                )}
-                onClick={() => handleCopy("name@example.com", "server")}
-              >
-                {copiedStates.server ? (
-                  <Check className="h-4 w-4 text-green-500" />
-                ) : (
-                  <Copy className="h-4 w-4 text-gray-400" />
-                )}
-              </Button>
+              <div className="absolute right-0 top-1 h-full flex">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="px-2 hover:bg-transparent"
+                  onClick={() => setShowConnectionUrl(!showConnectionUrl)}
+                >
+                  {showConnectionUrl ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={cn(
+                    " px-2 hover:bg-transparent",
+                    "transition-all duration-200"
+                  )}
+                  onClick={() =>
+                    handleCopy(connection?.connectionUrl || "", "server")
+                  }
+                >
+                  {copiedStates.server ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -182,7 +207,7 @@ export default function DockModal({
                   "bg-gray-800 text-gray-400 border-0 py-5 pr-20 !text-base",
                   showUsername ? "tracking-wide" : "tracking-widest"
                 )}
-                value="username123"
+                value={connection?.username}
                 readOnly
               />
               <div className="absolute right-0 top-1 h-full flex">
@@ -202,7 +227,9 @@ export default function DockModal({
                   size="sm"
                   variant="ghost"
                   className="px-2 hover:bg-transparent"
-                  onClick={() => handleCopy("username123", "username")}
+                  onClick={() =>
+                    handleCopy(connection?.username || "", "username")
+                  }
                 >
                   {copiedStates.username ? (
                     <Check className="h-4 w-4 text-green-500" />
@@ -229,7 +256,7 @@ export default function DockModal({
                   "bg-gray-800 text-gray-400 border-0 py-5 pr-20 !text-base",
                   showPassword ? "tracking-wide" : "tracking-widest"
                 )}
-                value="password123"
+                value={connection?.password}
                 readOnly
               />
               <div className="absolute right-0 top-1 h-full flex">
@@ -249,7 +276,9 @@ export default function DockModal({
                   size="sm"
                   variant="ghost"
                   className="px-2 hover:bg-transparent"
-                  onClick={() => handleCopy("password123", "password")}
+                  onClick={() =>
+                    handleCopy(connection?.password || "", "password")
+                  }
                 >
                   {copiedStates.password ? (
                     <Check className="h-4 w-4 text-green-500" />
