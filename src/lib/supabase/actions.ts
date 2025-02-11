@@ -13,6 +13,7 @@ export {
   removeMembersFromOrganization,
   updateOrganizationConnections,
   updateOrganizationInvitations,
+  getOrganizations,
 };
 
 const getParentOrganization = async (userId: string) => {
@@ -78,6 +79,17 @@ type UpdateUser = Partial<User> & {
 const updateUser = async (userId: string, data: UpdateUser) => {
   const { error } = await supabase.from("users").update(data).eq("id", userId);
 
+  if (error) throw error;
+  return data;
+};
+
+// ORGANIZATIONS
+
+const getOrganizations = async (orgIds: string[]) => {
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("*")
+    .in("id", orgIds);
   if (error) throw error;
   return data;
 };

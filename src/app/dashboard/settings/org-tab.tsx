@@ -13,31 +13,34 @@ import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function OrganizationTab() {
-  const { parentOrganization, setParentOrganization } = useAppContext();
+  const { selectedOrganization, setSelectedOrganization, currentUser } =
+    useAppContext();
   const [orgEditState, setOrgEditState] = useState({
     show: false,
     loading: false,
   });
-  const [orgName, setOrgName] = useState(parentOrganization?.name || "");
+  const [orgName, setOrgName] = useState(selectedOrganization?.name || "");
   const { toast } = useToast();
 
+  const isOrgOwner = selectedOrganization?.owner === currentUser?.id;
+
   useEffect(() => {
-    setOrgName(parentOrganization?.name || "");
-  }, [parentOrganization]);
+    setOrgName(selectedOrganization?.name || "");
+  }, [selectedOrganization]);
 
   const handleCancel = () => {
     setOrgEditState({ show: false, loading: false });
-    setOrgName(parentOrganization?.name || "");
+    setOrgName(selectedOrganization?.name || "");
   };
 
   const handleSaveOrgName = async () => {
     setOrgEditState((prev) => ({ ...prev, loading: true }));
     try {
-      await updateOrganization(parentOrganization?.id || "", {
-        id: parentOrganization?.id || "",
+      await updateOrganization(selectedOrganization?.id || "", {
+        id: selectedOrganization?.id || "",
         name: orgName,
       });
-      setParentOrganization((prev) => {
+      setSelectedOrganization((prev) => {
         if (!prev) return null;
         return { ...prev, name: orgName };
       });
@@ -106,15 +109,17 @@ export default function OrganizationTab() {
               ) : (
                 <>
                   <h3 className="text-lg">{orgName}</h3>
-                  <Button
-                    size="sm"
-                    className="text-base"
-                    onClick={() =>
-                      setOrgEditState({ loading: false, show: true })
-                    }
-                  >
-                    Edit
-                  </Button>
+                  {isOrgOwner && (
+                    <Button
+                      size="sm"
+                      className="text-base"
+                      onClick={() =>
+                        setOrgEditState({ loading: false, show: true })
+                      }
+                    >
+                      Edit
+                    </Button>
+                  )}
                 </>
               )}
             </div>

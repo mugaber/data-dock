@@ -3,7 +3,7 @@
 import {
   Settings,
   Link as Link2,
-  ChevronsUpDown,
+  // ChevronsUpDown,
   Database,
 } from "lucide-react";
 import {
@@ -21,11 +21,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signout } from "../auth/actions";
+import { signout } from "@/app/auth/actions";
 import { useRouter } from "next/navigation";
 import { settingsPath, connectionsPath, integrationsPath } from "@/lib/paths";
 import { useAppContext } from "@/context";
 import { Skeleton } from "@/components/ui/skeleton";
+import OrgSelector from "./org-selector";
 
 const menuItems = [
   { icon: Database, label: "Integrations", path: integrationsPath() },
@@ -65,12 +66,7 @@ export function AppSidebar() {
     <Sidebar className="p-4 bg-gray-800 text-white border-none">
       <SidebarContent>
         {parentOrganization ? (
-          <div className="p-2 w-full flex items-center justify-between">
-            <h1 className="text-xl font-semibold truncate">
-              {parentOrganization.name}
-            </h1>
-            <ChevronsUpDown className="w-5 h-5 text-gray-400" />
-          </div>
+          <OrgSelector />
         ) : (
           <div className="flex w-full h-11 items-center pr-8">
             <Skeleton className="h-4 w-full bg-gray-700" />

@@ -32,19 +32,26 @@ import { useSyncInvitations } from "../hooks";
 import MemberRowSkeleton from "@/components/member-row-skeleton";
 
 export function TeamSection() {
-  const { parentOrganization, allUsers, refetchAllUsers, refetchCurrentOrg } =
-    useAppContext();
+  const {
+    selectedOrganization,
+    allUsers,
+    refetchAllUsers,
+    refetchCurrentOrg,
+    currentUser,
+  } = useAppContext();
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   useSyncInvitations();
 
-  const invitationsUsers = getInvitationsUsers(parentOrganization ?? {});
+  const isOrgOwner = selectedOrganization?.owner === currentUser?.id;
+
+  const invitationsUsers = getInvitationsUsers(selectedOrganization ?? {});
 
   const orgMembers = getOrgMembers(
     allUsers,
-    parentOrganization?.members,
-    parentOrganization?.owner ?? ""
+    selectedOrganization?.members,
+    selectedOrganization?.owner ?? ""
   );
 
   const sortedOrgMembers = [...orgMembers, ...invitationsUsers]?.sort(
@@ -80,7 +87,7 @@ export function TeamSection() {
     setLoading(true);
 
     try {
-      const invitationsToRemove = parentOrganization?.invitations?.filter(
+      const invitationsToRemove = selectedOrganization?.invitations?.filter(
         (invitation) => membersToRemove.includes(invitation.email)
       );
       const finalMembersToRemove = membersToRemove.filter(
@@ -97,7 +104,7 @@ export function TeamSection() {
       if (!finalMembersToRemove?.length) return;
 
       await removeMembersFromOrganization(
-        parentOrganization?.id ?? "",
+        selectedOrganization?.id ?? "",
         finalMembersToRemove
       );
 
@@ -125,7 +132,7 @@ export function TeamSection() {
     invitationsToRemove: Invitation[] | undefined
   ) => {
     try {
-      const updatedInvitations = parentOrganization?.invitations?.filter(
+      const updatedInvitations = selectedOrganization?.invitations?.filter(
         (invitation) =>
           !invitationsToRemove
             ?.map((inv) => inv.email)
@@ -133,7 +140,7 @@ export function TeamSection() {
       );
 
       await updateOrganizationInvitations(
-        parentOrganization?.id ?? "",
+        selectedOrganization?.id ?? "",
         updatedInvitations ?? []
       );
 
@@ -158,7 +165,8 @@ export function TeamSection() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Team</h2>
 
-        {!!parentOrganization?.id &&
+        {!!selectedOrganization?.id &&
+          isOrgOwner &&
           (selectedMembers.length ? (
             <Button
               variant="destructive"
@@ -188,9 +196,11 @@ export function TeamSection() {
                   membersWithoutOwner.length > 0
                 }
                 onClick={handleAllCheckBox}
-                disabled={membersWithoutOwner.every(
-                  (member) => member.type === "owner"
-                )}
+                disabled={
+                  membersWithoutOwner.every(
+                    (member) => member.type === "owner"
+                  ) || !isOrgOwner
+                }
               />
             </TableHead>
             <CustomTableHead>name</CustomTableHead>
@@ -209,7 +219,7 @@ export function TeamSection() {
                 <CustomCheckbox
                   checked={selectedMembers.includes(member.id)}
                   onClick={() => handleCheckboxChange(member.id)}
-                  disabled={member.type === "owner"}
+                  disabled={member.type === "owner" || !isOrgOwner}
                 />
               </TableCell>
               <TableCell className="text-white">
@@ -238,7 +248,7 @@ export function TeamSection() {
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     asChild
-                    disabled={member.type === "owner"}
+                    disabled={member.type === "owner" || !isOrgOwner}
                     className="hover:bg-gray-800 !text-white"
                   >
                     <Button variant="ghost" className="h-8 w-8 p-0">

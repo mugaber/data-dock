@@ -3,6 +3,7 @@ export type CurrentUser = {
   email?: string;
   full_name?: string;
   avatar_url?: string;
+  organizations?: string[];
 };
 
 export type Organization = {
@@ -28,6 +29,7 @@ export type Connection = {
   syncInterval?: string;
   username?: string;
   password?: string;
+  connectionUrl?: string;
 };
 
 export type Invitation = {

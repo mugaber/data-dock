@@ -10,7 +10,9 @@ export default function IntegrationCard({
   type,
   onEdit,
 }: IntegrationCardProps) {
-  const { parentOrganization } = useAppContext();
+  const { selectedOrganization, currentUser } = useAppContext();
+
+  const isOrgOwner = selectedOrganization?.owner === currentUser?.id;
 
   return (
     <Card className="bg-gray-800 border-none">
@@ -31,11 +33,12 @@ export default function IntegrationCard({
         </span>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {parentOrganization?.id ? (
+        {selectedOrganization?.id ? (
           <Button
             variant="default"
-            className="w-full text-base py-5"
+            className="w-full text-base py-5  disabled:cursor-default"
             onClick={onEdit}
+            disabled={!isOrgOwner}
           >
             Connect
           </Button>

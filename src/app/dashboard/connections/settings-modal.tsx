@@ -38,7 +38,12 @@ export default function SettingsModal({
   onOpenChange,
   connection,
 }: SettingsModalProps) {
-  const { parentOrganization, refetchCurrentOrg } = useAppContext();
+  const {
+    parentOrganization,
+    selectedOrganization,
+    refetchCurrentOrg,
+    currentUser,
+  } = useAppContext();
 
   const [connectionName, setConnectionName] = useState("");
   const [apiKey, setApiKey] = useState("");
@@ -51,6 +56,8 @@ export default function SettingsModal({
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const isOrgOwner = selectedOrganization?.owner === currentUser?.id;
 
   useEffect(() => {
     setConnectionName(connection?.name || "");
@@ -181,10 +188,11 @@ export default function SettingsModal({
             </Label>
             <CustomInput
               id="name"
-              className="bg-gray-700 text-gray-300  py-5 !text-base tracking-wide"
+              className="bg-gray-700 text-gray-300 disabled:opacity-100 disabled:cursor-text py-5 !text-base tracking-wide"
               value={connectionName}
               onChange={(e) => setConnectionName(e.target.value)}
               tabIndex={-1}
+              disabled={!isOrgOwner}
             />
           </div>
 
@@ -200,12 +208,13 @@ export default function SettingsModal({
                 id="api-key"
                 type={showAPIKey ? "text" : "password"}
                 className={cn(
-                  "!bg-gray-700 text-gray-300 py-5 !text-base pr-20",
+                  "!bg-gray-700 text-gray-300 py-5 !text-base pr-20 disabled:opacity-100 disabled:cursor-text",
                   showAPIKey ? "tracking-wide" : "tracking-widest"
                 )}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 tabIndex={-1}
+                disabled={!isOrgOwner}
               />
               <div className="absolute right-0 top-2 h-full flex">
                 <Button
@@ -250,13 +259,14 @@ export default function SettingsModal({
               </Label>
               <Select
                 value={syncInterval}
+                disabled={!isOrgOwner}
                 onValueChange={(value) =>
                   setSyncInterval(value as "daily" | "weekly" | "monthly")
                 }
               >
                 <SelectTrigger
                   className={cn(
-                    "bg-gray-700 text-gray-300 border-gray-600 py-5 h-11 text-base",
+                    "bg-gray-700 text-gray-300 border-gray-600 py-5 h-11 text-base disabled:opacity-100 disabled:cursor-default",
                     "tracking-wide"
                   )}
                 >
@@ -286,31 +296,35 @@ export default function SettingsModal({
               </p>
             </div>
 
-            <Button
-              variant="default"
-              disabled={!isValuesChanged || isUpdating || isDeleting}
-              className="w-full text-base py-5 bg-blue-700 hover:bg-blue-800"
-              onClick={handleSave}
-            >
-              {isUpdating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Save"
-              )}
-            </Button>
+            {isOrgOwner && (
+              <>
+                <Button
+                  variant="default"
+                  disabled={!isValuesChanged || isUpdating || isDeleting}
+                  className="w-full text-base py-5 bg-blue-700 hover:bg-blue-800"
+                  onClick={handleSave}
+                >
+                  {isUpdating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Save"
+                  )}
+                </Button>
 
-            <Button
-              variant="destructive"
-              className="w-full text-base py-5 bg-red-700 hover:bg-red-800"
-              onClick={handleDelete}
-              disabled={isDeleting || isUpdating}
-            >
-              {isDeleting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Delete"
-              )}
-            </Button>
+                <Button
+                  variant="destructive"
+                  className="w-full text-base py-5 bg-red-700 hover:bg-red-800"
+                  onClick={handleDelete}
+                  disabled={isDeleting || isUpdating}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Delete"
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         </DialogFooter>
       </DialogContent>

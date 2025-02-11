@@ -12,7 +12,7 @@ import { ConnectionLoadingCard } from "@/components/connection-card-skeleton";
 // import Image from "next/image";
 
 export default function Connections() {
-  const { parentOrganization } = useAppContext();
+  const { selectedOrganization } = useAppContext();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDockOpen, setIsDockOpen] = useState(false);
   const [selectedConnection, setSelectedConnection] =
@@ -48,18 +48,17 @@ export default function Connections() {
         </div>
 
         <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {!parentOrganization?.name &&
+          {!selectedOrganization?.id &&
             Array(4)
               .fill(0)
               .map((_, index) => <ConnectionLoadingCard key={index} />)}
 
-          {parentOrganization?.connections?.map((connection) => (
+          {selectedOrganization?.connections?.map((connection) => (
             <ConnectionCard
               key={connection.name}
               name={connection.name}
               type={connection.type}
               apiKey={connection.apiKey}
-              // @ts-expect-error - TODO: Fix this
               connectionUrl={connection.connectionUrl}
               onEdit={() => handleEdit(connection)}
               onDock={() => handleDock(connection)}
@@ -67,7 +66,7 @@ export default function Connections() {
           ))}
         </div>
 
-        {parentOrganization?.connections?.length === 0 && (
+        {selectedOrganization?.connections?.length === 0 && (
           <div className="flex w-full h-full flex-col items-center justify-center gap-8">
             {/* <Image
               src="/server-status.svg"

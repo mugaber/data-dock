@@ -2,6 +2,7 @@
 
 import {
   getAllUsers,
+  getOrganizations,
   getParentOrganization,
   getUser,
 } from "@/lib/supabase/actions";
@@ -23,6 +24,11 @@ interface AppContextType {
   allUsers: User[];
   refetchAllUsers: () => void;
   refetchCurrentOrg: () => void;
+  allOrganizations: Organization[];
+  selectedOrganization: Organization | null;
+  setSelectedOrganization: React.Dispatch<
+    React.SetStateAction<Organization | null>
+  >;
 }
 
 const AppContext = createContext<AppContextType>({
@@ -33,6 +39,9 @@ const AppContext = createContext<AppContextType>({
   allUsers: [],
   refetchAllUsers: () => {},
   refetchCurrentOrg: () => {},
+  allOrganizations: [],
+  selectedOrganization: null,
+  setSelectedOrganization: () => {},
 });
 
 export const useAppContext = () => useContext(AppContext);
@@ -43,6 +52,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [parentOrganization, setParentOrganization] =
     useState<Organization | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [allOrganizations, setAllOrganizations] = useState<Organization[]>([]);
+  const [selectedOrganization, setSelectedOrganization] =
+    useState<Organization | null>(null);
+
   const [refetchUsers, setRefetchUsers] = useState(false);
   const [refetchOrg, setRefetchOrg] = useState(false);
 
@@ -82,6 +95,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       const orgData = await getParentOrganization(currentUser?.id);
       const processedOrgData = processOrgData(orgData);
       setParentOrganization(processedOrgData);
+      setSelectedOrganization(processedOrgData);
     };
     fetchOrgData();
   }, [currentUser?.id, refetchOrg]);
@@ -94,6 +108,20 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     fetchAllUsers();
   }, [parentOrganization?.id, refetchUsers]);
 
+  useEffect(() => {
+    const fetchAllOrganizations = async () => {
+      const orgIds = currentUser?.organizations;
+      if (!orgIds?.length) return;
+
+      const organizations = await getOrganizations(orgIds);
+      const processedOrganizations = organizations.map((org) =>
+        processOrgData(org)
+      );
+      setAllOrganizations(processedOrganizations || []);
+    };
+    fetchAllOrganizations();
+  }, [currentUser?.id, currentUser, refetchOrg]);
+
   const refetchCurrentOrg = () => setRefetchOrg((prev) => !prev);
   const refetchAllUsers = () => setRefetchUsers((prev) => !prev);
 
@@ -105,6 +133,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         parentOrganization,
         setParentOrganization,
         allUsers,
+        allOrganizations,
+        selectedOrganization,
+        setSelectedOrganization,
         refetchCurrentOrg,
         refetchAllUsers,
       }}
