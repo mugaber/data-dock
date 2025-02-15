@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import Image from "next/image";
 import { ConnectionCardProps } from "./lib";
 import { Settings } from "lucide-react";
-import { useAppContext } from "@/context";
 import { useState } from "react";
 import { handleSync } from "./lib/sync";
 import { Progress } from "@/components/ui/progress";
@@ -18,20 +17,16 @@ export default function ConnectionCard({
   onEdit,
   onDock,
 }: ConnectionCardProps) {
-  const { parentOrganization } = useAppContext();
   const [syncProgress, setSyncProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
 
   const handleSyncButton = async () => {
     await handleSync({
       setSyncProgress,
-      setIsUploading,
       connection: {
         name,
         connectionUrl,
         apiKey,
       },
-      parentOrganizationId: parentOrganization?.id || "",
     });
   };
 
@@ -46,7 +41,7 @@ export default function ConnectionCard({
               size="icon"
               className="text-white hover:text-gray-300 hover:bg-gray-800"
               onClick={onEdit}
-              disabled={isUploading || syncProgress > 0}
+              disabled={syncProgress > 0}
             >
               <Settings className="!h-6 !w-6" />
             </Button>
@@ -70,16 +65,12 @@ export default function ConnectionCard({
             variant="default"
             className="w-full disabled:opacity-100 overflow-hidden bg-blue-600 hover:bg-blue-700"
             onClick={handleSyncButton}
-            disabled={isUploading || syncProgress > 0}
+            disabled={syncProgress > 0}
           >
             <span className="relative z-10">
-              {isUploading
-                ? `Uploading: ${syncProgress}%`
-                : syncProgress === 0
-                ? "Sync"
-                : `Syncing: ${syncProgress}%`}
+              {syncProgress === 0 ? "Sync" : `Syncing: ${syncProgress}%`}
             </span>
-            {(isUploading || syncProgress > 0) && (
+            {syncProgress > 0 && (
               <Progress
                 value={syncProgress}
                 className="absolute inset-0 h-full rounded-md bg-blue-500 transition-all duration-300"
@@ -92,7 +83,7 @@ export default function ConnectionCard({
           variant="default"
           className="w-full bg-blue-600 hover:bg-blue-700"
           onClick={onDock}
-          disabled={isUploading || syncProgress > 0}
+          disabled={syncProgress > 0}
         >
           Dock
         </Button>

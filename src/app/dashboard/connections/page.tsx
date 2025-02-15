@@ -9,7 +9,6 @@ import ConnectionCard from "./connection-card";
 import DockModal from "./dock-modal";
 import { useAppContext } from "@/context";
 import { ConnectionLoadingCard } from "@/components/connection-card-skeleton";
-// import Image from "next/image";
 
 export default function Connections() {
   const { selectedOrganization } = useAppContext();
@@ -68,15 +67,6 @@ export default function Connections() {
 
         {selectedOrganization?.connections?.length === 0 && (
           <div className="flex w-full h-full flex-col items-center justify-center gap-8">
-            {/* <Image
-              src="/server-status.svg"
-              alt="No connections"
-              width={500}
-              height={500}
-              priority
-              className="dark:invert"
-            /> */}
-
             <div className="flex flex-col items-center justify-center w-full text-base">
               <p className="text-gray-400 text-center">
                 You don&apos;t have any connection.

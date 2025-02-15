@@ -1,3 +1,10 @@
+/**
+ * Projects table
+ * Note: There is a discrepancy between the Forecast API docs and the actual data.
+ * task_levels is in their docs, but not in the data.
+ * use_task_owner, use_task_followers and use_sub_tasks are in the data, but not in the docs.
+ */
+
 const projectsTable = `
   CREATE TABLE forecast.projects (
     id INTEGER PRIMARY KEY,
@@ -20,7 +27,9 @@ const projectsTable = `
     sprint_length INTEGER,
     start_date DATE,
     end_date DATE,
-    task_levels INTEGER,
+    use_task_owner BOOLEAN,
+    use_task_followers BOOLEAN,
+    use_sub_tasks BOOLEAN,
     client INTEGER,
     rate_card INTEGER,
     remaining_auto_calculated BOOLEAN,
@@ -93,6 +102,10 @@ const expenseCategoriesTable = `
   );
 `;
 
+/**
+ * Persons table
+ * Note: There is a user_type in the docs, but not in the data.
+ */
 const personsTable = `
   CREATE TABLE forecast.persons (
     id INTEGER PRIMARY KEY,
@@ -100,7 +113,6 @@ const personsTable = `
     last_name TEXT,
     email TEXT,
     job_title TEXT,
-    user_type TEXT,
     client_id INTEGER,
     holiday_calendar_id INTEGER,
     monday INTEGER,

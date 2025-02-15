@@ -1,30 +1,17 @@
 import { toast } from "@/hooks/use-toast";
-// import { uploadFile } from "@/lib/supabase/buckets";
-// import { convertToCSV } from "../../utils/csv";
-// import JSZip from "jszip";
 import { fetchForecastData, FORECAST_ENDPOINTS } from "./forecast";
 import { ConnectionCardProps } from ".";
 
 interface SyncProps {
   setSyncProgress: React.Dispatch<React.SetStateAction<number>>;
-  setIsUploading: React.Dispatch<React.SetStateAction<boolean>>;
   connection: ConnectionCardProps;
-  parentOrganizationId: string;
 }
 
 export const handleSync = async ({
   setSyncProgress,
-  // setIsUploading,
   connection,
-}: // parentOrganizationId,
-SyncProps) => {
-  setSyncProgress(0);
-
+}: SyncProps) => {
   try {
-    // const bucketName = "forecast-exports";
-    // const filename = `${connection.name}.zip`;
-    // const filePath = `${parentOrganizationId}/${filename}`;
-
     const interval = setInterval(() => {
       setSyncProgress((current) => {
         if (current >= 30) {
@@ -38,26 +25,6 @@ SyncProps) => {
       FORECAST_ENDPOINTS,
       connection.apiKey || ""
     );
-
-    // const zip = new JSZip();
-
-    // forecastData?.map((item) => {
-    //   if (Array.isArray(item.data) || item?.data) {
-    //     const content = Array.isArray(item.data) ? item.data : item.data;
-    //     const csvContent = convertToCSV(content as Record<string, unknown>[]);
-
-    //     zip.file(`${item.name}.csv`, csvContent);
-    //   }
-    // });
-
-    // const zipBlob = await zip.generateAsync({ type: "blob" });
-    // const file = new File([zipBlob], filename, {
-    //   type: "application/zip",
-    // });
-
-    // setIsUploading(true);
-    // await uploadFile(file, filePath, bucketName);
-    // setIsUploading(false);
 
     const CHUNK_SIZE = 3000;
     let totalRecords = 0;

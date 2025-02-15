@@ -59,12 +59,8 @@ export async function POST(request: Request) {
           [tableName]
         );
 
-        const recordColumns = Object.keys(records[0]);
-
-        const validColumns = recordColumns.filter((col) =>
-          tableColumnsResult.rows.some(
-            (dbCol) => dbCol.column_name.toLowerCase() === col.toLowerCase()
-          )
+        const validColumns = tableColumnsResult.rows.map((col) =>
+          col.column_name.toLowerCase()
         );
 
         const columnTypes = tableColumnsResult.rows.reduce(
