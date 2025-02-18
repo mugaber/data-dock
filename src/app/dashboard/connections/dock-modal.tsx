@@ -89,7 +89,9 @@ export default function DockModal({
 
       const processedData = await processZipFile(data);
 
-      const response = await fetch("/api/google/sheets", {
+      const CHUNK_SIZE = 1000;
+
+      const createResponse = await fetch("/api/google/sheets", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -97,25 +99,68 @@ export default function DockModal({
         body: JSON.stringify({
           accessToken: googleAccessToken,
           connectionName: connection?.name,
-          forecastData: processedData,
+          sheetInfo: processedData.map((item) => ({ name: item.name })),
         }),
       });
 
-      const result = await response.json();
+      const { spreadsheetId, spreadsheetUrl } = await createResponse.json();
 
-      if (!result.success) {
-        throw new Error(result.error);
+      for (const item of processedData) {
+        if (Array.isArray(item.data) && item.data.length > 0) {
+          const headers = Object.keys(item.data[0]);
+
+          const firstChunk = [
+            headers,
+            ...item.data
+              .slice(0, CHUNK_SIZE)
+              .map((row) => headers.map((header) => row[header] ?? "")),
+          ];
+
+          await fetch("/api/google/sheets/update", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              accessToken: googleAccessToken,
+              spreadsheetId,
+              sheetName: item.name,
+              data: firstChunk,
+              startRow: 1,
+            }),
+          });
+
+          for (let i = CHUNK_SIZE; i < item.data.length; i += CHUNK_SIZE) {
+            const chunk = item.data
+              .slice(i, i + CHUNK_SIZE)
+              .map((row) => headers.map((header) => row[header] ?? ""));
+
+            await fetch("/api/google/sheets/update", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                accessToken: googleAccessToken,
+                spreadsheetId,
+                sheetName: item.name,
+                data: chunk,
+                startRow: i + 1,
+              }),
+            });
+
+            setExportProgress(Math.round((i / item.data.length) * 100));
+          }
+        }
       }
-
-      setExportProgress(100);
 
       toast({
         title: "Success",
         description: "Data exported to Google Sheets successfully",
       });
 
-      if (result.spreadsheetUrl) {
-        window.open(result.spreadsheetUrl, "_blank");
+      if (spreadsheetUrl) {
+        window.open(spreadsheetUrl, "_blank");
       }
     } catch (error) {
       toast({
