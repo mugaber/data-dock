@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  Settings,
-  Link as Link2,
-  // ChevronsUpDown,
-  Database,
-} from "lucide-react";
+import { Settings, Link as Link2, Database } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,

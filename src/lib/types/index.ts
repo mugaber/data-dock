@@ -35,3 +35,8 @@ export type Connection = {
 export type Invitation = {
   email: string;
 };
+
+export type ForecastData = {
+  name: string;
+  data: Record<string, string>[];
+};

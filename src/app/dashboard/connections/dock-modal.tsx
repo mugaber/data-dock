@@ -11,8 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check, Copy, Eye, EyeOff, Loader2 } from "lucide-react";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { useCallback, useState } from "react";
+import { cn, processZipFile } from "@/lib/utils";
 import {
   ConnectionCardProps,
   fetchForecastData,
@@ -25,6 +25,7 @@ import { saveAs } from "file-saver";
 import { toast } from "@/hooks/use-toast";
 import { useAppContext } from "@/context";
 import { downloadFile, uploadFile } from "@/lib/supabase/buckets";
+import { useGoogleAuth } from "@/hooks/use-google-auth";
 
 interface DockModalProps {
   open: boolean;
@@ -39,6 +40,13 @@ export default function DockModal({
 }: DockModalProps) {
   const { parentOrganization } = useAppContext();
 
+  const {
+    isAuthenticated: isGoogleAuthenticated,
+    accessToken: googleAccessToken,
+    isLoading: isGoogleAuthLoading,
+    initiateAuth: initiateGoogleAuth,
+  } = useGoogleAuth();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showUsername, setShowUsername] = useState(false);
   const [showConnectionUrl, setShowConnectionUrl] = useState(true);
@@ -48,7 +56,7 @@ export default function DockModal({
     password: false,
   });
 
-  const [isExportingCSV, setIsExportingCSV] = useState(false);
+  const [isExportingData, setIsExportingData] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
   const handleCopy = async (text: string, field: keyof typeof copiedStates) => {
@@ -59,8 +67,78 @@ export default function DockModal({
     }, 500);
   };
 
+  const handleGoogleSheetsExport = useCallback(async () => {
+    if (!isGoogleAuthenticated || !googleAccessToken) {
+      await initiateGoogleAuth();
+      return;
+    }
+
+    setIsExportingData(true);
+    setExportProgress(0);
+
+    try {
+      const bucketName = "forecast-exports";
+      const filename = `${connection?.name}.zip`;
+      const filePath = `${parentOrganization?.id}/${filename}`;
+
+      const { data } = await downloadFile(filePath, bucketName);
+
+      if (!data) {
+        throw new Error("No data found, Please export data to CSV first");
+      }
+
+      const processedData = await processZipFile(data);
+
+      const response = await fetch("/api/google/sheets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          accessToken: googleAccessToken,
+          connectionName: connection?.name,
+          forecastData: processedData,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      setExportProgress(100);
+
+      toast({
+        title: "Success",
+        description: "Data exported to Google Sheets successfully",
+      });
+
+      if (result.spreadsheetUrl) {
+        window.open(result.spreadsheetUrl, "_blank");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to export to Google Sheets",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExportingData(false);
+      setExportProgress(0);
+    }
+  }, [
+    isGoogleAuthenticated,
+    googleAccessToken,
+    initiateGoogleAuth,
+    connection,
+  ]);
+
   const handleExportToCSV = async () => {
-    setIsExportingCSV(true);
+    setIsExportingData(true);
     setExportProgress(0);
 
     try {
@@ -125,7 +203,7 @@ export default function DockModal({
         variant: "destructive",
       });
     } finally {
-      setIsExportingCSV(false);
+      setIsExportingData(false);
       setExportProgress(0);
     }
   };
@@ -297,25 +375,30 @@ export default function DockModal({
           <div className="flex flex-col gap-4 w-full">
             <Button
               variant="default"
-              disabled={isExportingCSV}
+              disabled={isExportingData || isGoogleAuthLoading}
               className="w-full text-base py-5 bg-green-800 hover:bg-green-900"
+              onClick={handleGoogleSheetsExport}
             >
-              Connect to Google Sheets
+              {isGoogleAuthLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Export to Google Sheets"
+              )}
             </Button>
             <Button
               variant="default"
               className="w-full text-base py-5 bg-blue-700 hover:bg-blue-800"
               onClick={handleExportToCSV}
-              disabled={isExportingCSV}
+              disabled={isExportingData || isGoogleAuthLoading}
             >
-              {isExportingCSV ? (
+              {isExportingData ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Export as CSV"
               )}
             </Button>
 
-            {isExportingCSV && (
+            {isExportingData && (
               <div className="mt-4">
                 <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
                   <div
