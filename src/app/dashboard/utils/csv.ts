@@ -1,7 +1,12 @@
-export const convertToCSV = (data: Record<string, unknown>[]): string => {
+import { FORECAST_HEADERS } from "@/lib/types/forecast-headers";
+
+export const convertToCSV = (
+  data: Record<string, unknown>[],
+  tableName: string
+): string => {
   if (!data || data.length === 0) return "";
 
-  const headers = Object.keys(data[0]);
+  const headers = FORECAST_HEADERS[tableName as keyof typeof FORECAST_HEADERS];
   const csvRows = [
     headers.join(","),
     ...data.map((row) =>

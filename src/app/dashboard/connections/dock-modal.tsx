@@ -26,6 +26,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAppContext } from "@/context";
 import { downloadFile, uploadFile } from "@/lib/supabase/buckets";
 import { useGoogleAuth } from "@/hooks/use-google-auth";
+import { FORECAST_HEADERS } from "@/lib/types/forecast-headers";
 
 interface DockModalProps {
   open: boolean;
@@ -107,13 +108,19 @@ export default function DockModal({
 
       for (const item of processedData) {
         if (Array.isArray(item.data) && item.data.length > 0) {
-          const headers = Object.keys(item.data[0]);
+          const headers =
+            FORECAST_HEADERS[item.name as keyof typeof FORECAST_HEADERS];
+
+          const firstChuckData =
+            item.data.length > CHUNK_SIZE
+              ? item.data.slice(0, CHUNK_SIZE - 1)
+              : item.data;
 
           const firstChunk = [
             headers,
-            ...item.data
-              .slice(0, CHUNK_SIZE)
-              .map((row) => headers.map((header) => row[header] ?? "")),
+            ...firstChuckData.map((row) =>
+              headers.map((header) => row[header] ?? "")
+            ),
           ];
 
           await fetch("/api/google/sheets/update", {
@@ -135,7 +142,7 @@ export default function DockModal({
               .slice(i, i + CHUNK_SIZE)
               .map((row) => headers.map((header) => row[header] ?? ""));
 
-            await fetch("/api/google/sheets/update", {
+            const updateResponse = await fetch("/api/google/sheets/update", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -148,6 +155,12 @@ export default function DockModal({
                 startRow: i + 1,
               }),
             });
+
+            const { success } = await updateResponse.json();
+
+            if (!success) {
+              throw new Error("Failed to update Google Sheets");
+            }
 
             setExportProgress(Math.round((i / item.data.length) * 100));
           }
@@ -180,6 +193,7 @@ export default function DockModal({
     googleAccessToken,
     initiateGoogleAuth,
     connection,
+    parentOrganization?.id,
   ]);
 
   const handleExportToCSV = async () => {
@@ -210,7 +224,10 @@ export default function DockModal({
       forecastData?.map((item) => {
         if (Array.isArray(item.data) || item?.data) {
           const content = Array.isArray(item.data) ? item.data : item.data;
-          const csvContent = convertToCSV(content as Record<string, unknown>[]);
+          const csvContent = convertToCSV(
+            content as Record<string, unknown>[],
+            item.name || ""
+          );
 
           zip.file(`${item.name}.csv`, csvContent);
         }
