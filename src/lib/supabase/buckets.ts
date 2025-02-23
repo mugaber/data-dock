@@ -24,7 +24,7 @@ export async function downloadFile(filePath: string, bucketName: string) {
   try {
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .download(filePath);
+      .download(`${filePath}?t=${Date.now()}`);
 
     if (error) {
       console.error("Error downloading file:", error);

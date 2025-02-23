@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { randomBytes } from "crypto";
 import forecastSchema from "./schema/forecast";
+import intectSchema from "./schema/intect";
 
 const adminPrisma = new PrismaClient({
   datasources: {
@@ -13,9 +14,14 @@ const adminPrisma = new PrismaClient({
 interface SchemaConfig {
   dbName: string;
   username: string;
+  connectionType: string;
 }
 
-export async function createSchema({ dbName, username }: SchemaConfig) {
+export async function createSchema({
+  dbName,
+  username,
+  connectionType,
+}: SchemaConfig) {
   const dbPrisma = new PrismaClient({
     datasources: {
       db: {
@@ -24,29 +30,31 @@ export async function createSchema({ dbName, username }: SchemaConfig) {
     },
   });
 
+  const schemaName = connectionType?.toLowerCase();
+
   try {
-    await dbPrisma.$executeRawUnsafe(`CREATE SCHEMA forecast;`);
+    await dbPrisma.$executeRawUnsafe(`CREATE SCHEMA ${schemaName};`);
     await dbPrisma.$executeRawUnsafe(
-      `GRANT USAGE ON SCHEMA forecast TO ${username};`
+      `GRANT USAGE ON SCHEMA ${schemaName} TO ${username};`
     );
     await dbPrisma.$executeRawUnsafe(
-      `GRANT CREATE ON SCHEMA forecast TO ${username};`
+      `GRANT CREATE ON SCHEMA ${schemaName} TO ${username};`
     );
     await dbPrisma.$executeRawUnsafe(
-      `GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA forecast TO ${username};`
+      `GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${schemaName} TO ${username};`
     );
     await dbPrisma.$executeRawUnsafe(
-      `GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA forecast TO ${username};`
+      `GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ${schemaName} TO ${username};`
     );
     await dbPrisma.$executeRawUnsafe(
-      `ALTER DEFAULT PRIVILEGES IN SCHEMA forecast GRANT ALL ON TABLES TO ${username};`
+      `ALTER DEFAULT PRIVILEGES IN SCHEMA ${schemaName} GRANT ALL ON TABLES TO ${username};`
     );
     await dbPrisma.$executeRawUnsafe(
-      `ALTER DEFAULT PRIVILEGES IN SCHEMA forecast GRANT ALL ON SEQUENCES TO ${username};`
+      `ALTER DEFAULT PRIVILEGES IN SCHEMA ${schemaName} GRANT ALL ON SEQUENCES TO ${username};`
     );
 
     await dbPrisma.$executeRawUnsafe(`
-      CREATE TABLE forecast.metadata (
+      CREATE TABLE ${schemaName}.metadata (
         id SERIAL PRIMARY KEY,
         last_sync_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         sync_status VARCHAR(50),
@@ -56,7 +64,7 @@ export async function createSchema({ dbName, username }: SchemaConfig) {
     `);
 
     await dbPrisma.$executeRawUnsafe(`
-      CREATE TABLE forecast.sync_logs (
+      CREATE TABLE ${schemaName}.sync_logs (
         id SERIAL PRIMARY KEY,
         event_type VARCHAR(50),
         status VARCHAR(50),
@@ -65,13 +73,19 @@ export async function createSchema({ dbName, username }: SchemaConfig) {
       );
     `);
 
-    await dbPrisma.$executeRawUnsafe(forecastSchema.projectsTable);
-    await dbPrisma.$executeRawUnsafe(forecastSchema.personCostPeriodsTable);
-    await dbPrisma.$executeRawUnsafe(forecastSchema.expenseItemsTable);
-    await dbPrisma.$executeRawUnsafe(forecastSchema.expenseCategoriesTable);
-    await dbPrisma.$executeRawUnsafe(forecastSchema.personsTable);
-    await dbPrisma.$executeRawUnsafe(forecastSchema.rateCardsTable);
-    await dbPrisma.$executeRawUnsafe(forecastSchema.timeRegistrationsTable);
+    if (connectionType === "forecast") {
+      await dbPrisma.$executeRawUnsafe(forecastSchema.projectsTable);
+      await dbPrisma.$executeRawUnsafe(forecastSchema.personCostPeriodsTable);
+      await dbPrisma.$executeRawUnsafe(forecastSchema.expenseItemsTable);
+      await dbPrisma.$executeRawUnsafe(forecastSchema.expenseCategoriesTable);
+      await dbPrisma.$executeRawUnsafe(forecastSchema.personsTable);
+      await dbPrisma.$executeRawUnsafe(forecastSchema.rateCardsTable);
+      await dbPrisma.$executeRawUnsafe(forecastSchema.timeRegistrationsTable);
+    }
+
+    if (connectionType === "intect") {
+      await dbPrisma.$executeRawUnsafe(intectSchema.salaryBatchesTable);
+    }
   } catch (error) {
     throw error;
   } finally {
@@ -80,6 +94,7 @@ export async function createSchema({ dbName, username }: SchemaConfig) {
 }
 
 interface DatabaseConfig {
+  connectionType: string;
   connectionName: string;
   organizationId: string;
   userData: {
@@ -89,6 +104,7 @@ interface DatabaseConfig {
 }
 
 export async function createDatabase({
+  connectionType,
   connectionName,
   organizationId,
   userData,
@@ -125,7 +141,7 @@ export async function createDatabase({
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    await createSchema({ dbName, username });
+    await createSchema({ dbName, username, connectionType });
 
     const connectionUrl = `postgresql://${username}:${password}@${process.env.AWS_RDS_HOST}:${process.env.AWS_RDS_PORT}/${dbName}`;
 

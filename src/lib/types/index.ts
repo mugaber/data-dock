@@ -30,6 +30,8 @@ export type Connection = {
   username?: string;
   password?: string;
   connectionUrl?: string;
+  dbUsername?: string;
+  dbPassword?: string;
 };
 
 export type Invitation = {

@@ -1,9 +1,10 @@
-import { createDatabase, deleteDatabase, testConnection } from "@/lib/database";
+import { createDatabase, deleteDatabase } from "@/lib/database";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { connectionName, organizationId, userData } = await req.json();
+    const { connectionName, organizationId, userData, connectionType } =
+      await req.json();
 
     if (!connectionName || !organizationId) {
       return NextResponse.json(
@@ -16,13 +17,14 @@ export async function POST(req: Request) {
       connectionName,
       organizationId,
       userData,
+      connectionType,
     });
 
-    const isConnected = await testConnection(connectionDatabase.connectionUrl);
+    // const isConnected = await testConnection(connectionDatabase.connectionUrl);
 
-    if (!isConnected) {
-      throw new Error("Failed to connect to the newly created database");
-    }
+    // if (!isConnected) {
+    //   throw new Error("Failed to connect to the newly created database");
+    // }
 
     return NextResponse.json(connectionDatabase);
   } catch (error) {

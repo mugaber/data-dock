@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function IntegrationCard({
   name,
   type,
+  comingSoon,
   onEdit,
 }: IntegrationCardProps) {
   const { selectedOrganization, currentUser } = useAppContext();
@@ -38,9 +39,9 @@ export default function IntegrationCard({
             variant="default"
             className="w-full text-base py-5  disabled:cursor-default"
             onClick={onEdit}
-            disabled={!isOrgOwner}
+            disabled={!isOrgOwner || comingSoon}
           >
-            Connect
+            {comingSoon ? "Coming Soon" : "Connect"}
           </Button>
         ) : (
           <Skeleton className="w-full h-10 bg-gray-700" />

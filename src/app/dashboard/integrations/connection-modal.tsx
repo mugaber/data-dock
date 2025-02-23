@@ -44,6 +44,8 @@ export default function ConnectionModal({
     apiKey: false,
   });
 
+  const isIntectIntegration = integration?.name === "intect";
+
   const handleCopy = async (text: string, field: keyof typeof copiedStates) => {
     await navigator.clipboard.writeText(text);
     setCopiedStates((prev) => ({ ...prev, [field]: true }));
@@ -73,11 +75,18 @@ export default function ConnectionModal({
       if (connectionName.length < 4) {
         handleError(
           "connectionName",
-          "Connection name must be at least 4 characters"
+          isIntectIntegration
+            ? "Username must be at least 4 characters"
+            : "Connection name must be at least 4 characters"
         );
       }
       if (apiKey.length < 8) {
-        handleError("apiKey", "API key must be at least 8 characters");
+        handleError(
+          "apiKey",
+          isIntectIntegration
+            ? "Password must be at least 8 characters"
+            : "API key must be at least 8 characters"
+        );
       }
       return;
     }
@@ -87,15 +96,20 @@ export default function ConnectionModal({
     );
 
     if (isConnectionExists) {
-      handleError("connectionName", "Connection name already exists");
+      handleError(
+        "connectionName",
+        isIntectIntegration
+          ? "Username already exists"
+          : "Connection name already exists"
+      );
       return;
     }
 
     // TODO: move to using database checks and secure credentials
     const firstConnection = parentOrganization?.connections?.[0];
     const userData = {
-      username: firstConnection?.username,
-      password: firstConnection?.password,
+      username: firstConnection?.dbUsername,
+      password: firstConnection?.dbPassword,
     };
 
     setIsLoading(true);
@@ -110,6 +124,7 @@ export default function ConnectionModal({
           connectionName,
           organizationId: parentOrganization?.id || "",
           userData,
+          connectionType: integration?.name || "",
         }),
       });
 
@@ -133,8 +148,8 @@ export default function ConnectionModal({
         apiKey: apiKey,
         syncInterval: "monthly",
         dbName: connectionData.dbName,
-        username: connectionData.username,
-        password: connectionData.password,
+        dbUsername: connectionData.username,
+        dbPassword: connectionData.password,
         connectionUrl: connectionData.connectionUrl,
       };
 
@@ -174,7 +189,7 @@ export default function ConnectionModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[430px] p-6 bg-gray-800 text-white border-0">
         <DialogHeader className="mb-1">
-          <DialogTitle className="text-xl font-medium tracking-wide pr-3">
+          <DialogTitle className="text-xl font-medium tracking-wide pr-3 capitalize">
             Connect to {integration?.name}
           </DialogTitle>
         </DialogHeader>
@@ -185,7 +200,7 @@ export default function ConnectionModal({
               htmlFor="connection-name"
               className="text-base text-white font-normal"
             >
-              Connection name
+              {isIntectIntegration ? "Username" : "Connection name"}
             </Label>
             <div className="relative">
               <CustomInput
@@ -193,7 +208,9 @@ export default function ConnectionModal({
                 value={connectionName}
                 className="pr-10 text-gray-300 tracking-wide !text-base"
                 onChange={handleConnectionNameChange}
-                placeholder="Connection name"
+                placeholder={
+                  isIntectIntegration ? "Username" : "Connection name"
+                }
                 tabIndex={-1}
               />
               <Button
@@ -222,7 +239,7 @@ export default function ConnectionModal({
               htmlFor="api-key"
               className="text-base text-white font-normal"
             >
-              API key
+              {isIntectIntegration ? "Password" : "API key"}
             </Label>
             <div className="relative">
               <CustomInput
@@ -231,7 +248,7 @@ export default function ConnectionModal({
                 value={apiKey}
                 className="pr-20 text-gray-300 tracking-wide !text-base"
                 onChange={handleApiKeyChange}
-                placeholder="Your API key"
+                placeholder={isIntectIntegration ? "Password" : "API key"}
               />
               <div className="absolute right-0 top-1 h-full flex">
                 <Button
@@ -270,12 +287,7 @@ export default function ConnectionModal({
           variant="default"
           className="w-full text-base py-5 mt-2"
           onClick={handleConnect}
-          disabled={
-            isLoading ||
-            !apiKey ||
-            !connectionName ||
-            ["intect", "planday"].includes(integration?.name || "")
-          }
+          disabled={isLoading || !apiKey || !connectionName}
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Connect"}
         </Button>

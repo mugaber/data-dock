@@ -11,6 +11,10 @@ export const handleSync = async ({
   setSyncProgress,
   connection,
 }: SyncProps) => {
+  if (connection.type === "intect") {
+    await handleIntectSync(connection);
+    return;
+  }
   try {
     const interval = setInterval(() => {
       setSyncProgress((current) => {
@@ -108,4 +112,40 @@ export const handleSync = async ({
   } finally {
     setSyncProgress(0);
   }
+};
+
+export const handleIntectSync = async (connection: ConnectionCardProps) => {
+  const credentials = Buffer.from(
+    `${connection.name}:${connection.apiKey}`
+  ).toString("base64");
+
+  const response = await fetch("https://api.intect.app/api/auth/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Basic ${credentials}`,
+    },
+  });
+
+  const authData = await response.json();
+
+  console.log({
+    authData,
+  });
+
+  const salaryBatchesResponse = await fetch(
+    "https://api.intect.app/api/salarybatches",
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Token ${authData.Token}`,
+      },
+    }
+  );
+
+  const salaryBatches = await salaryBatchesResponse.json();
+
+  console.log({
+    salaryBatches,
+  });
 };

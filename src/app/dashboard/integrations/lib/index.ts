@@ -2,6 +2,7 @@ export interface IntegrationCardProps {
   id: string;
   name: string;
   type: string;
+  comingSoon?: boolean;
   onEdit: () => void;
 }
 
@@ -22,6 +23,7 @@ export const integrations: IntegrationCardProps[] = [
     id: "3",
     name: "shopify",
     type: "E-commerce",
+    comingSoon: true,
     onEdit: () => {},
   },
 ];

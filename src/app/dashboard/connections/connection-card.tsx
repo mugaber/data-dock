@@ -23,6 +23,7 @@ export default function ConnectionCard({
     await handleSync({
       setSyncProgress,
       connection: {
+        type,
         name,
         connectionUrl,
         apiKey,

@@ -13,4 +13,6 @@ export interface ConnectionCardProps {
   username?: string;
   password?: string;
   dbName?: string;
+  dbUsername?: string;
+  dbPassword?: string;
 }

@@ -93,7 +93,7 @@ export default function SettingsModal({
         method: "DELETE",
         body: JSON.stringify({
           dbName: connection?.dbName,
-          username: connection?.username,
+          username: connection?.dbUsername,
           deleteOrgUser: isLastConnection,
         }),
       });
@@ -184,7 +184,7 @@ export default function SettingsModal({
         <div className="flex flex-col gap-5">
           <div className="space-y-2">
             <Label htmlFor="name" className="text-base text-white font-normal">
-              Connection name
+              {connection?.type === "intect" ? "Username" : "Connection name"}
             </Label>
             <CustomInput
               id="name"
@@ -201,7 +201,7 @@ export default function SettingsModal({
               htmlFor="api-key"
               className="text-base text-white font-normal"
             >
-              API key
+              {connection?.type === "intect" ? "Password" : "API key"}
             </Label>
             <div className="relative">
               <CustomInput

@@ -4,7 +4,8 @@ import { ForecastData } from "@/lib/types/index";
 
 export async function POST(req: Request) {
   try {
-    const { accessToken, connectionName, sheetInfo } = await req.json();
+    const { accessToken, connectionName, sheetInfo, connectionType } =
+      await req.json();
 
     const oauth2Client = new google.auth.OAuth2();
     oauth2Client.setCredentials({ access_token: accessToken });
@@ -14,7 +15,7 @@ export async function POST(req: Request) {
     const spreadsheet = await sheets.spreadsheets.create({
       requestBody: {
         properties: {
-          title: `${connectionName} - Forecast Data ${new Date().toLocaleDateString()}`,
+          title: `${connectionName} - ${connectionType} data ${new Date().toLocaleDateString()}`,
         },
         sheets: sheetInfo.map((item: ForecastData) => ({
           properties: {

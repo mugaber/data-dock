@@ -27,6 +27,7 @@ import { useAppContext } from "@/context";
 import { downloadFile, uploadFile } from "@/lib/supabase/buckets";
 import { useGoogleAuth } from "@/hooks/use-google-auth";
 import { FORECAST_HEADERS } from "@/lib/types/forecast-headers";
+import { fetchIntectData } from "./lib/intect";
 
 interface DockModalProps {
   open: boolean;
@@ -90,7 +91,7 @@ export default function DockModal({
 
       const processedData = await processZipFile(data);
 
-      const CHUNK_SIZE = 1000;
+      const CHUNK_SIZE = 5000;
 
       const createResponse = await fetch("/api/google/sheets", {
         method: "POST",
@@ -100,25 +101,23 @@ export default function DockModal({
         body: JSON.stringify({
           accessToken: googleAccessToken,
           connectionName: connection?.name,
+          connectionType: connection?.type,
           sheetInfo: processedData.map((item) => ({ name: item.name })),
         }),
       });
 
       const { spreadsheetId, spreadsheetUrl } = await createResponse.json();
 
-      for (const item of processedData) {
-        if (Array.isArray(item.data) && item.data.length > 0) {
-          const headers =
-            FORECAST_HEADERS[item.name as keyof typeof FORECAST_HEADERS];
+      if (connection?.type === "intect") {
+        for (const item of processedData as {
+          name: string;
+          data: Record<string, unknown>[];
+        }[]) {
+          const headers = Object.keys(item.data[0] as Record<string, unknown>);
 
-          const firstChuckData =
-            item.data.length > CHUNK_SIZE
-              ? item.data.slice(0, CHUNK_SIZE - 1)
-              : item.data;
-
-          const firstChunk = [
+          const sheetData = [
             headers,
-            ...firstChuckData.map((row) =>
+            ...(item.data as Record<string, unknown>[]).map((row) =>
               headers.map((header) => row[header] ?? "")
             ),
           ];
@@ -132,17 +131,32 @@ export default function DockModal({
               accessToken: googleAccessToken,
               spreadsheetId,
               sheetName: item.name,
-              data: firstChunk,
+              data: sheetData,
               startRow: 1,
             }),
           });
+        }
+      }
 
-          for (let i = CHUNK_SIZE; i < item.data.length; i += CHUNK_SIZE) {
-            const chunk = item.data
-              .slice(i, i + CHUNK_SIZE)
-              .map((row) => headers.map((header) => row[header] ?? ""));
+      if (connection?.type === "forecast") {
+        for (const item of processedData) {
+          if (Array.isArray(item.data) && item.data.length > 0) {
+            const headers =
+              FORECAST_HEADERS[item.name as keyof typeof FORECAST_HEADERS];
 
-            const updateResponse = await fetch("/api/google/sheets/update", {
+            const firstChuckData =
+              item.data.length > CHUNK_SIZE
+                ? item.data.slice(0, CHUNK_SIZE - 1)
+                : item.data;
+
+            const firstChunk = [
+              headers,
+              ...firstChuckData.map((row) =>
+                headers.map((header) => row[header] ?? "")
+              ),
+            ];
+
+            await fetch("/api/google/sheets/update", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -151,18 +165,38 @@ export default function DockModal({
                 accessToken: googleAccessToken,
                 spreadsheetId,
                 sheetName: item.name,
-                data: chunk,
-                startRow: i + 1,
+                data: firstChunk,
+                startRow: 1,
               }),
             });
 
-            const { success } = await updateResponse.json();
+            for (let i = CHUNK_SIZE; i < item.data.length; i += CHUNK_SIZE) {
+              const chunk = item.data
+                .slice(i, i + CHUNK_SIZE)
+                .map((row) => headers.map((header) => row[header] ?? ""));
 
-            if (!success) {
-              throw new Error("Failed to update Google Sheets");
+              const updateResponse = await fetch("/api/google/sheets/update", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  accessToken: googleAccessToken,
+                  spreadsheetId,
+                  sheetName: item.name,
+                  data: chunk,
+                  startRow: i + 1,
+                }),
+              });
+
+              const { success } = await updateResponse.json();
+
+              if (!success) {
+                throw new Error("Failed to update Google Sheets");
+              }
+
+              setExportProgress(Math.round((i / item.data.length) * 100));
             }
-
-            setExportProgress(Math.round((i / item.data.length) * 100));
           }
         }
       }
@@ -213,25 +247,42 @@ export default function DockModal({
         return;
       }
 
-      const { forecastData } = await fetchForecastData(
-        FORECAST_ENDPOINTS,
-        connection?.apiKey || "",
-        (progress) => setExportProgress(progress)
-      );
-
       const zip = new JSZip();
 
-      forecastData?.map((item) => {
-        if (Array.isArray(item.data) || item?.data) {
-          const content = Array.isArray(item.data) ? item.data : item.data;
+      if (connection?.type === "intect") {
+        const intectData = await fetchIntectData(connection);
+
+        intectData?.map((item) => {
           const csvContent = convertToCSV(
-            content as Record<string, unknown>[],
-            item.name || ""
+            item.data as Record<string, unknown>[],
+            item.name || "",
+            "intect"
           );
 
           zip.file(`${item.name}.csv`, csvContent);
-        }
-      });
+        });
+      }
+
+      if (connection?.type === "forecast") {
+        const { forecastData } = await fetchForecastData(
+          FORECAST_ENDPOINTS,
+          connection?.apiKey || "",
+          (progress) => setExportProgress(progress)
+        );
+
+        forecastData?.map((item) => {
+          if (Array.isArray(item.data) || item?.data) {
+            const content = Array.isArray(item.data) ? item.data : item.data;
+            const csvContent = convertToCSV(
+              content as Record<string, unknown>[],
+              item.name || "",
+              "forecast"
+            );
+
+            zip.file(`${item.name}.csv`, csvContent);
+          }
+        });
+      }
 
       setExportProgress(95);
       const zipBlob = await zip.generateAsync({ type: "blob" });
@@ -347,7 +398,7 @@ export default function DockModal({
                   "bg-gray-800 text-gray-400 border-0 py-5 pr-20 !text-base",
                   showUsername ? "tracking-wide" : "tracking-widest"
                 )}
-                value={connection?.username}
+                value={connection?.dbUsername}
                 readOnly
               />
               <div className="absolute right-0 top-1 h-full flex">
@@ -368,7 +419,7 @@ export default function DockModal({
                   variant="ghost"
                   className="px-2 hover:bg-transparent"
                   onClick={() =>
-                    handleCopy(connection?.username || "", "username")
+                    handleCopy(connection?.dbUsername || "", "username")
                   }
                 >
                   {copiedStates.username ? (
@@ -396,7 +447,7 @@ export default function DockModal({
                   "bg-gray-800 text-gray-400 border-0 py-5 pr-20 !text-base",
                   showPassword ? "tracking-wide" : "tracking-widest"
                 )}
-                value={connection?.password}
+                value={connection?.dbPassword}
                 readOnly
               />
               <div className="absolute right-0 top-1 h-full flex">
@@ -417,7 +468,7 @@ export default function DockModal({
                   variant="ghost"
                   className="px-2 hover:bg-transparent"
                   onClick={() =>
-                    handleCopy(connection?.password || "", "password")
+                    handleCopy(connection?.dbPassword || "", "password")
                   }
                 >
                   {copiedStates.password ? (

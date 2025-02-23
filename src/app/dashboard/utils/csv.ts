@@ -2,11 +2,16 @@ import { FORECAST_HEADERS } from "@/lib/types/forecast-headers";
 
 export const convertToCSV = (
   data: Record<string, unknown>[],
-  tableName: string
+  tableName: string,
+  type: "forecast" | "intect"
 ): string => {
   if (!data || data.length === 0) return "";
 
-  const headers = FORECAST_HEADERS[tableName as keyof typeof FORECAST_HEADERS];
+  const headers =
+    type === "forecast"
+      ? FORECAST_HEADERS[tableName as keyof typeof FORECAST_HEADERS]
+      : Object.keys(data[0]);
+
   const csvRows = [
     headers.join(","),
     ...data.map((row) =>
