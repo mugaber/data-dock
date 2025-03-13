@@ -147,6 +147,50 @@ export default function PrivacyPolicy() {
           <p>Usage Data</p>
         </li>
       </ul>
+      <h4 className="text-base font-bold">Google Sheets Integration</h4>
+      <p className="text-sm">
+        Our Service includes integration with Google Sheets to enable you to
+        export and automatically update your data. To provide this
+        functionality, we require you to grant specific permissions (scopes) to
+        our application. These permissions allow us to:
+      </p>
+      <ul className="text-sm list-disc pl-6 mb-4">
+        <li>Access, edit, create, and delete your Google Sheets</li>
+        <li>
+          View and manage Google Drive files and folders that you have opened or
+          created with our app
+        </li>
+        <li>
+          View your Google account information (email address and profile
+          information)
+        </li>
+      </ul>
+      <p className="text-sm">
+        These permissions are necessary for the core functionality of DataDock
+        to work properly. Specifically, they allow us to:
+      </p>
+      <ul className="text-sm list-disc pl-6 mb-4">
+        <li>
+          Create new spreadsheets in your Google Drive to export your data
+        </li>
+        <li>
+          Update these spreadsheets automatically to ensure your exported data
+          stays current
+        </li>
+        <li>Associate your Google account with your DataDock account</li>
+      </ul>
+      <p className="text-sm">
+        You will be prompted to approve these permissions during the integration
+        setup process. You can revoke these permissions at any time through your
+        Google Account settings, but doing so will disable the Google Sheets
+        integration functionality in our Service.
+      </p>
+      <p className="text-sm">
+        We only access your Google Sheets data as necessary to perform the
+        specific functions you request through our Service, and we do not share
+        this access with third parties except as described in this Privacy
+        Policy.
+      </p>
       <h4 className="text-base font-bold">Usage Data</h4>
       <p className="text-sm">
         Usage Data is collected automatically when using the Service.
