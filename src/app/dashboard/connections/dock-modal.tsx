@@ -19,7 +19,7 @@ import {
   FORECAST_ENDPOINTS,
 } from "./lib";
 import { Separator } from "@/components/ui/separator";
-import { convertToCSV } from "../utils/csv";
+import { convertToCSV, convertToCSVExtended } from "../utils/csv";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { toast } from "@/hooks/use-toast";
@@ -108,21 +108,48 @@ export default function DockModal({
 
       const { spreadsheetId, spreadsheetUrl } = await createResponse.json();
 
-      if (connection?.type === "intect") {
-        for (const item of processedData as {
-          name: string;
-          data: Record<string, unknown>[];
-        }[]) {
-          const headers = Object.keys(item.data[0] as Record<string, unknown>);
+      for (const item of processedData) {
+        if (!Array.isArray(item.data) || item.data.length === 0) {
+          continue;
+        }
 
-          const sheetData = [
-            headers,
-            ...(item.data as Record<string, unknown>[]).map((row) =>
-              headers.map((header) => row[header] ?? "")
-            ),
-          ];
+        const headers =
+          connection?.type === "forecast"
+            ? FORECAST_HEADERS[item.name as keyof typeof FORECAST_HEADERS]
+            : Object.keys(item.data[0] as Record<string, unknown>);
 
-          await fetch("/api/google/sheets/update", {
+        const firstChuckData =
+          item.data.length > CHUNK_SIZE
+            ? item.data.slice(0, CHUNK_SIZE - 1)
+            : item.data;
+
+        const firstChunk = [
+          headers,
+          ...firstChuckData.map((row) =>
+            headers.map((header) => row[header] ?? "")
+          ),
+        ];
+
+        await fetch("/api/google/sheets/update", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            accessToken: googleAccessToken,
+            spreadsheetId,
+            sheetName: item.name,
+            data: firstChunk,
+            startRow: 1,
+          }),
+        });
+
+        for (let i = CHUNK_SIZE; i < item.data.length; i += CHUNK_SIZE) {
+          const chunk = item.data
+            .slice(i, i + CHUNK_SIZE)
+            .map((row) => headers.map((header) => row[header] ?? ""));
+
+          const updateResponse = await fetch("/api/google/sheets/update", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -131,73 +158,18 @@ export default function DockModal({
               accessToken: googleAccessToken,
               spreadsheetId,
               sheetName: item.name,
-              data: sheetData,
-              startRow: 1,
+              data: chunk,
+              startRow: i + 1,
             }),
           });
-        }
-      }
 
-      if (connection?.type === "forecast") {
-        for (const item of processedData) {
-          if (Array.isArray(item.data) && item.data.length > 0) {
-            const headers =
-              FORECAST_HEADERS[item.name as keyof typeof FORECAST_HEADERS];
+          const { success } = await updateResponse.json();
 
-            const firstChuckData =
-              item.data.length > CHUNK_SIZE
-                ? item.data.slice(0, CHUNK_SIZE - 1)
-                : item.data;
-
-            const firstChunk = [
-              headers,
-              ...firstChuckData.map((row) =>
-                headers.map((header) => row[header] ?? "")
-              ),
-            ];
-
-            await fetch("/api/google/sheets/update", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                accessToken: googleAccessToken,
-                spreadsheetId,
-                sheetName: item.name,
-                data: firstChunk,
-                startRow: 1,
-              }),
-            });
-
-            for (let i = CHUNK_SIZE; i < item.data.length; i += CHUNK_SIZE) {
-              const chunk = item.data
-                .slice(i, i + CHUNK_SIZE)
-                .map((row) => headers.map((header) => row[header] ?? ""));
-
-              const updateResponse = await fetch("/api/google/sheets/update", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  accessToken: googleAccessToken,
-                  spreadsheetId,
-                  sheetName: item.name,
-                  data: chunk,
-                  startRow: i + 1,
-                }),
-              });
-
-              const { success } = await updateResponse.json();
-
-              if (!success) {
-                throw new Error("Failed to update Google Sheets");
-              }
-
-              setExportProgress(Math.round((i / item.data.length) * 100));
-            }
+          if (!success) {
+            throw new Error("Failed to update Google Sheets");
           }
+
+          setExportProgress(Math.round((i / item.data.length) * 100));
         }
       }
 
@@ -253,7 +225,7 @@ export default function DockModal({
         const intectData = await fetchIntectData(connection);
 
         intectData?.map((item) => {
-          const csvContent = convertToCSV(
+          const csvContent = convertToCSVExtended(
             item.data as Record<string, unknown>[],
             item.name || "",
             "intect"

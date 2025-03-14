@@ -64,9 +64,9 @@ export default function ConnectionCard({
         <div className="relative">
           <Button
             variant="default"
-            className="w-full disabled:opacity-100 overflow-hidden bg-blue-600 hover:bg-blue-700"
+            className="w-full disabled:opacity-80 overflow-hidden bg-blue-600 hover:bg-blue-700"
             onClick={handleSyncButton}
-            disabled={syncProgress > 0}
+            disabled={syncProgress > 0 || type === "intect"}
           >
             <span className="relative z-10">
               {syncProgress === 0 ? "Sync" : `Syncing: ${syncProgress}%`}
