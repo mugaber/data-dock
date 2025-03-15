@@ -6,10 +6,13 @@ interface SalaryBatch {
 
 interface SalaryBatchRecord {
   Id: number;
+  UserEmploymentId?: number;
 }
 
 interface SalaryStatement {
   Id: number;
+  UserFullName?: string;
+  UserEmploymentId?: number;
 }
 
 export const fetchIntectData = async (connection: ConnectionCardProps) => {
@@ -54,15 +57,6 @@ export const fetchIntectData = async (connection: ConnectionCardProps) => {
     })
   );
 
-  const allSalaryBatchRecords = detailedSalaryBatches.flatMap((batch) => {
-    if (batch.SalaryBatchRecords && Array.isArray(batch.SalaryBatchRecords)) {
-      return batch.SalaryBatchRecords.map(
-        (record: SalaryBatchRecord) => record
-      );
-    }
-    return [];
-  });
-
   const allSalaryStatements = detailedSalaryBatches.flatMap((batch) => {
     if (!batch.SalaryStatements || !Array.isArray(batch.SalaryStatements)) {
       return [];
@@ -70,6 +64,23 @@ export const fetchIntectData = async (connection: ConnectionCardProps) => {
     return batch.SalaryStatements.map(
       (statement: SalaryStatement) => statement
     );
+  });
+
+  const userFullNames = new Map(
+    allSalaryStatements.map((statement: SalaryStatement) => [
+      statement.UserEmploymentId,
+      statement.UserFullName,
+    ])
+  );
+
+  const allSalaryBatchRecords = detailedSalaryBatches.flatMap((batch) => {
+    if (batch.SalaryBatchRecords && Array.isArray(batch.SalaryBatchRecords)) {
+      return batch.SalaryBatchRecords.map((record: SalaryBatchRecord) => ({
+        ...record,
+        UserFullName: userFullNames.get(record.UserEmploymentId),
+      }));
+    }
+    return [];
   });
 
   const companyUsersResponse = await fetch(
