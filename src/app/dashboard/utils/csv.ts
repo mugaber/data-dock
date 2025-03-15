@@ -36,7 +36,8 @@ export const convertToCSVExtended = (
 ): string => {
   if (!data || data.length === 0) return "";
 
-  const expandedHeaders: string[] = [];
+  const directHeaders: string[] = [];
+  const objectHeaderMappings: Record<string, string[]> = {};
   const originalHeaders =
     type === "forecast"
       ? FORECAST_HEADERS[tableName as keyof typeof FORECAST_HEADERS]
@@ -45,12 +46,18 @@ export const convertToCSVExtended = (
   originalHeaders.forEach((header) => {
     const value = data[0][header];
     if (value && typeof value === "object" && !Array.isArray(value)) {
-      Object.keys(value as object).forEach((key) => {
-        expandedHeaders.push(`${header}_${key}`);
-      });
+      const objectKeys = Object.keys(value as object);
+      objectHeaderMappings[header] = objectKeys.map(
+        (key) => `${header}_${key}`
+      );
     } else {
-      expandedHeaders.push(header);
+      directHeaders.push(header);
     }
+  });
+
+  const expandedHeaders: string[] = [...directHeaders];
+  Object.values(objectHeaderMappings).forEach((mappings) => {
+    expandedHeaders.push(...mappings);
   });
 
   const csvRows = [
@@ -58,47 +65,67 @@ export const convertToCSVExtended = (
     ...data.map((row) => {
       const rowValues: string[] = [];
 
-      originalHeaders.forEach((header) => {
+      directHeaders.forEach((header) => {
         const value = row[header];
 
-        if (["SalaryStatements", "SalaryBatchRecords"].includes(header)) {
+        if (
+          ["SalaryStatements", "SalaryBatchRecords"].includes(header) &&
+          tableName === "salary_batches"
+        ) {
           rowValues.push("Dedicated table");
           return;
         }
 
+        const cellValue = value?.toString() ?? "";
+        const formattedCell =
+          cellValue.includes(",") ||
+          cellValue.includes("\n") ||
+          cellValue.includes('"')
+            ? `"${cellValue.replace(/"/g, '""')}"`
+            : cellValue;
+        rowValues.push(formattedCell);
+      });
+
+      Object.entries(objectHeaderMappings).forEach(([header, mappings]) => {
+        const value = row[header];
+
         if (value && typeof value === "object" && !Array.isArray(value)) {
-          Object.keys(value as object).forEach((key) => {
-            const transformTables = [
-              "salary_batch_records",
-              "salary_statements",
-            ].includes(tableName);
-            const isNestedObject =
-              (value as Record<string, unknown>)[key] &&
-              typeof (value as Record<string, unknown>)[key] === "object" &&
-              !Array.isArray((value as Record<string, unknown>)[key]);
+          const objectKeys = Object.keys(value as object);
 
-            const cellValue =
-              isNestedObject && transformTables
-                ? JSON.stringify((value as Record<string, unknown>)[key])
-                : (value as Record<string, unknown>)[key]?.toString() ?? "";
+          mappings.forEach((mapping) => {
+            const key = mapping.substring(header.length + 1);
 
-            const formattedCell =
-              cellValue.includes(",") ||
-              cellValue.includes("\n") ||
-              cellValue.includes('"')
-                ? `"${cellValue.replace(/"/g, '""')}"`
-                : cellValue;
-            rowValues.push(formattedCell);
+            if (objectKeys.includes(key)) {
+              const transformTables = [
+                "salary_batch_records",
+                "salary_statements",
+              ].includes(tableName);
+
+              const propertyValue = (value as Record<string, unknown>)[key];
+              const isNestedObject =
+                propertyValue &&
+                typeof propertyValue === "object" &&
+                !Array.isArray(propertyValue);
+
+              const cellValue =
+                isNestedObject && transformTables
+                  ? JSON.stringify(propertyValue)
+                  : propertyValue?.toString() ?? "";
+
+              const formattedCell =
+                cellValue.includes(",") ||
+                cellValue.includes("\n") ||
+                cellValue.includes('"')
+                  ? `"${cellValue.replace(/"/g, '""')}"`
+                  : cellValue;
+
+              rowValues.push(formattedCell);
+            } else {
+              rowValues.push("");
+            }
           });
         } else {
-          const cellValue = value?.toString() ?? "";
-          const formattedCell =
-            cellValue.includes(",") ||
-            cellValue.includes("\n") ||
-            cellValue.includes('"')
-              ? `"${cellValue.replace(/"/g, '""')}"`
-              : cellValue;
-          rowValues.push(formattedCell);
+          mappings.forEach(() => rowValues.push(""));
         }
       });
 
