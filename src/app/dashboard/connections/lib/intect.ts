@@ -72,6 +72,16 @@ export const fetchIntectData = async (connection: ConnectionCardProps) => {
     );
   });
 
+  const companyUsersResponse = await fetch(
+    "https://api.intect.app/api/companyusers/simple/includehidden",
+    {
+      method: "GET",
+      headers: { Authorization: `Token ${authData.Token}` },
+    }
+  );
+
+  const companyUsers = await companyUsersResponse.json();
+
   return [
     {
       name: "salary_batches",
@@ -84,6 +94,10 @@ export const fetchIntectData = async (connection: ConnectionCardProps) => {
     {
       name: "salary_statements",
       data: allSalaryStatements,
+    },
+    {
+      name: "company_users",
+      data: companyUsers,
     },
   ];
 };
