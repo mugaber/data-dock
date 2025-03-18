@@ -1,0 +1,156 @@
+service: data-dock-sync
+
+frameworkVersion: "3"
+
+# Load environment variables from .env files
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ${env:AWS_REGION, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
+  environment:
+    AWS_RDS_HOST: ${env:AWS_RDS_HOST}
+    AWS_RDS_PORT: ${env:AWS_RDS_PORT}
+    AWS_RDS_USER: ${env:AWS_RDS_USER}
+    AWS_RDS_PASSWORD: ${env:AWS_RDS_PASSWORD}
+    DATABASE_URL: ${env:DATABASE_URL}
+    # Use function names instead of ARNs to avoid circular dependencies
+    FORECAST_SYNC_LAMBDA: data-dock-sync-${opt:stage, self:provider.stage}-forecastSync
+    INTECT_SYNC_LAMBDA: data-dock-sync-${opt:stage, self:provider.stage}-intectSync
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - lambda:InvokeFunction
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - rds:*
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: "*"
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-dotenv-plugin
+
+custom:
+  dotenv:
+    path: ./.env.${opt:stage, self:provider.stage, 'dev'}
+    include:
+      - AWS_RDS_HOST
+      - AWS_RDS_PORT
+      - AWS_RDS_USER
+      - AWS_RDS_PASSWORD
+      - DATABASE_URL
+      - STAGE
+
+package:
+  individually: true
+  patterns:
+    - "!node_modules/.prisma/client/libquery_engine-*"
+    - "node_modules/.prisma/client/libquery_engine-rhel-*"
+    - "!node_modules/prisma/libquery_engine-*"
+    - "!node_modules/@prisma/engines/**"
+
+functions:
+  connectionSyncTrigger:
+    handler: connection-sync-trigger/index.handler
+    timeout: 30
+    memorySize: 256
+    events:
+      - http:
+          path: /sync
+          method: post
+          cors:
+            origin: "*" # Or specify your domain
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+
+  forecastSync:
+    handler: forecast-sync/index.handler
+    timeout: 900 # 15 minutes
+    memorySize: 1024
+    environment:
+      NODE_OPTIONS: --max-old-space-size=1024
+
+  intectSync:
+    handler: intect-sync/index.handler
+    timeout: 900 # 15 minutes
+    memorySize: 1024
+    environment:
+      NODE_OPTIONS: --max-old-space-size=1024
+
+resources:
+  Resources:
+    # Create EventBridge rules for different sync intervals
+    DailySyncRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Name: daily-sync-rule-${self:provider.stage}
+        ScheduleExpression: cron(0 1 * * ? *)
+        State: ENABLED
+        Targets:
+          - Arn: !GetAtt ConnectionSyncTriggerLambdaFunction.Arn
+            Id: DailySyncTarget
+            Input: '{"queryStringParameters":{"scheduled":"true","interval":"daily"}}'
+
+    WeeklySyncRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Name: weekly-sync-rule-${self:provider.stage}
+        ScheduleExpression: cron(0 2 ? * MON *)
+        State: ENABLED
+        Targets:
+          - Arn: !GetAtt ConnectionSyncTriggerLambdaFunction.Arn
+            Id: WeeklySyncTarget
+            Input: '{"queryStringParameters":{"scheduled":"true","interval":"weekly"}}'
+
+    MonthlySyncRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Name: monthly-sync-rule-${self:provider.stage}
+        ScheduleExpression: cron(0 3 1 * ? *)
+        State: ENABLED
+        Targets:
+          - Arn: !GetAtt ConnectionSyncTriggerLambdaFunction.Arn
+            Id: MonthlySyncTarget
+            Input: '{"queryStringParameters":{"scheduled":"true","interval":"monthly"}}'
+
+    # Permissions for EventBridge to invoke Lambda
+    DailySyncPermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !GetAtt ConnectionSyncTriggerLambdaFunction.Arn
+        Action: lambda:InvokeFunction
+        Principal: events.amazonaws.com
+        SourceArn: !GetAtt DailySyncRule.Arn
+
+    WeeklySyncPermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !GetAtt ConnectionSyncTriggerLambdaFunction.Arn
+        Action: lambda:InvokeFunction
+        Principal: events.amazonaws.com
+        SourceArn: !GetAtt WeeklySyncRule.Arn
+
+    MonthlySyncPermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !GetAtt ConnectionSyncTriggerLambdaFunction.Arn
+        Action: lambda:InvokeFunction
+        Principal: events.amazonaws.com
+        SourceArn: !GetAtt MonthlySyncRule.Arn

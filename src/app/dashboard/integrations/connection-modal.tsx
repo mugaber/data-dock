@@ -159,12 +159,39 @@ export default function ConnectionModal({
       ]);
 
       refetchCurrentOrg();
-      handleClose();
 
-      toast({
-        title: `Added ${integration?.name} connection`,
-        description: "You can now start using the integration",
-      });
+      try {
+        await fetch("/dashboard/api/sync", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            connection: {
+              id: parentOrganization?.id || "",
+              type: integration?.name || "",
+              name: connectionName,
+              apiKey: apiKey,
+              connectionUrl: connectionData.connectionUrl,
+              syncInterval: "monthly",
+            },
+          }),
+        });
+
+        toast({
+          title: `Added ${integration?.name} connection`,
+          description: "Connection created and data sync initiated",
+        });
+      } catch (syncError) {
+        console.error("Failed to trigger sync:", syncError);
+
+        toast({
+          title: `Added ${integration?.name} connection`,
+          description: "Connection created but initial sync failed to start",
+        });
+      }
+
+      handleClose();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
