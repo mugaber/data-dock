@@ -93,6 +93,16 @@ export const fetchIntectData = async (connection: ConnectionCardProps) => {
 
   const companyUsers = await companyUsersResponse.json();
 
+  const salaryTypesResponse = await fetch(
+    "https://api.intect.app/api/salarytypes/categories",
+    {
+      method: "GET",
+      headers: { Authorization: `Token ${authData.Token}` },
+    }
+  );
+
+  const salaryTypes = await salaryTypesResponse.json();
+
   return [
     {
       name: "salary_batches",
@@ -109,6 +119,10 @@ export const fetchIntectData = async (connection: ConnectionCardProps) => {
     {
       name: "company_users",
       data: companyUsers,
+    },
+    {
+      name: "salary_types_categories",
+      data: salaryTypes,
     },
   ];
 };
