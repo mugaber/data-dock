@@ -9,6 +9,14 @@ import ConnectionCard from "./connection-card";
 import DockModal from "./dock-modal";
 import { useAppContext } from "@/context";
 import { ConnectionLoadingCard } from "@/components/connection-card-skeleton";
+import { parseShopifyBulkData, ParsedShopifyData } from "@/lib/shopify";
+
+interface BulkOperationStatus {
+  operationId: string;
+  status: string;
+  objectCount?: number;
+  url?: string;
+}
 
 export default function Connections() {
   const { selectedOrganization } = useAppContext();
@@ -16,19 +24,160 @@ export default function Connections() {
   const [isDockOpen, setIsDockOpen] = useState(false);
   const [selectedConnection, setSelectedConnection] =
     useState<ConnectionCardProps | null>(null);
+  const [bulkOperation, setBulkOperation] =
+    useState<BulkOperationStatus | null>(null);
+  const [shopifyData, setShopifyData] = useState<ParsedShopifyData>({
+    orders: [],
+    lineItems: [],
+    customers: [],
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  const checkExistingOperation = async () => {
+    try {
+      const response = await fetch("/api/shopify");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to check operation status");
+      }
+
+      if (data.operationId) {
+        setBulkOperation({
+          operationId: data.operationId,
+          status: data.status,
+          objectCount: data.objectCount,
+          url: data.url,
+        });
+
+        // If the operation is already completed, fetch its data immediately
+        if (data.status === "COMPLETED" && data.url) {
+          const parsedData = await parseShopifyBulkData(data.url);
+          setShopifyData(parsedData);
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error checking existing operation:", error);
+      return false;
+    }
+  };
+
+  const startBulkOperation = async () => {
+    try {
+      setError(null);
+      const response = await fetch("/api/shopify", {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to start bulk operation");
+      }
+
+      setBulkOperation({
+        operationId: data.operationId,
+        status: data.status,
+      });
+    } catch (error) {
+      console.error("Error starting bulk operation:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to start bulk operation"
+      );
+    }
+  };
+
+  const checkBulkOperationStatus = async () => {
+    if (!bulkOperation) return;
+
+    try {
+      const response = await fetch("/api/shopify");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to check operation status");
+      }
+
+      setBulkOperation({
+        operationId: data.operationId,
+        status: data.status,
+        objectCount: data.objectCount,
+        url: data.url,
+      });
+
+      if (data.status === "COMPLETED" && data.url) {
+        const parsedData = await parseShopifyBulkData(data.url);
+        setShopifyData(parsedData);
+      } else if (data.status === "FAILED") {
+        throw new Error("Bulk operation failed");
+      } else if (data.status === "CANCELED") {
+        throw new Error("Bulk operation was canceled");
+      } else {
+        console.log("Bulk operation status:", data.status);
+        if (data.objectCount) {
+          console.log("Objects processed so far:", data.objectCount);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking bulk operation:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to check operation status"
+      );
+    }
+  };
+
+  const cancelBulkOperation = async () => {
+    try {
+      const response = await fetch("/api/shopify", {
+        method: "DELETE",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to cancel operation");
+      }
+
+      setBulkOperation(null);
+    } catch (error) {
+      console.error("Error canceling bulk operation:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to cancel operation"
+      );
+    }
+  };
 
   useEffect(() => {
-    const fetchShopifyData = async () => {
-      try {
-        const response = await fetch("/api/shopify");
-        const data = await response.json();
-        console.log(data.orders);
-      } catch (error) {
-        console.error("Error fetching Shopify orders:", error);
+    let intervalId: NodeJS.Timeout;
+
+    if (bulkOperation && bulkOperation.status !== "COMPLETED") {
+      // Check status every 5 seconds
+      intervalId = setInterval(checkBulkOperationStatus, 5000);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [bulkOperation]);
+
+  useEffect(() => {
+    const initializeBulkOperation = async () => {
+      // First check if there's an existing operation
+      const hasExistingOperation = await checkExistingOperation();
+
+      // Only start a new operation if there isn't one in progress
+      if (!hasExistingOperation) {
+        await startBulkOperation();
       }
     };
 
-    fetchShopifyData();
+    initializeBulkOperation();
   }, []);
 
   const handleEdit = (connection: ConnectionCardProps) => {
@@ -50,6 +199,43 @@ export default function Connections() {
             Your integration connections
           </p>
         </div>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-2 rounded">
+            {error}
+          </div>
+        )}
+
+        {bulkOperation && (
+          <div className="bg-blue-500/10 border border-blue-500/20 text-blue-500 px-4 py-2 rounded">
+            <div className="flex items-center justify-between">
+              <div>
+                <p>Bulk Operation Status: {bulkOperation.status}</p>
+                {bulkOperation.objectCount && (
+                  <p>Objects Processed: {bulkOperation.objectCount}</p>
+                )}
+              </div>
+              {bulkOperation.status !== "COMPLETED" && (
+                <button
+                  onClick={cancelBulkOperation}
+                  className="text-sm bg-red-500/20 hover:bg-red-500/30 px-3 py-1 rounded"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {shopifyData.orders.length > 0 && (
+          <div className="bg-green-500/10 border border-green-500/20 text-green-500 px-4 py-2 rounded">
+            <p>
+              Successfully fetched {shopifyData.orders.length} orders,{" "}
+              {shopifyData.lineItems.length} line items, and{" "}
+              {shopifyData.customers.length} unique customers
+            </p>
+          </div>
+        )}
 
         <div className="relative mb-2">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
