@@ -3,7 +3,7 @@
 import { Search } from "lucide-react";
 import { CustomInput } from "@/components/custom";
 import SettingsModal from "./settings-modal";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ConnectionCardProps } from "./lib";
 import ConnectionCard from "./connection-card";
 import DockModal from "./dock-modal";
@@ -16,6 +16,20 @@ export default function Connections() {
   const [isDockOpen, setIsDockOpen] = useState(false);
   const [selectedConnection, setSelectedConnection] =
     useState<ConnectionCardProps | null>(null);
+
+  useEffect(() => {
+    const fetchShopifyData = async () => {
+      try {
+        const response = await fetch("/api/shopify");
+        const data = await response.json();
+        console.log(data.orders);
+      } catch (error) {
+        console.error("Error fetching Shopify orders:", error);
+      }
+    };
+
+    fetchShopifyData();
+  }, []);
 
   const handleEdit = (connection: ConnectionCardProps) => {
     setSelectedConnection(connection);

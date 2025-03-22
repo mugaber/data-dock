@@ -13,12 +13,12 @@ export const integrations: IntegrationCardProps[] = [
     type: "Project Management",
     onEdit: () => {},
   },
-  {
-    id: "2",
-    name: "intect",
-    type: "Payroll",
-    onEdit: () => {},
-  },
+  // {
+  //   id: "2",
+  //   name: "intect",
+  //   type: "Payroll",
+  //   onEdit: () => {},
+  // },
   {
     id: "3",
     name: "shopify",
