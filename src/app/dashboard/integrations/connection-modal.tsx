@@ -44,6 +44,7 @@ export default function ConnectionModal({
     apiKey: false,
   });
 
+  const isForecastIntegration = integration?.name === "forecast";
   const isIntectIntegration = integration?.name === "intect";
 
   const handleCopy = async (text: string, field: keyof typeof copiedStates) => {
@@ -160,34 +161,42 @@ export default function ConnectionModal({
 
       refetchCurrentOrg();
 
-      try {
-        await fetch("/dashboard/api/sync", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            connection: {
-              id: parentOrganization?.id || "",
-              type: integration?.name || "",
-              name: connectionName,
-              apiKey: apiKey,
-              connectionUrl: connectionData.connectionUrl,
-              syncInterval: "monthly",
+      // Only run sync for non-Shopify integrations
+      if (isForecastIntegration) {
+        try {
+          await fetch("/dashboard/api/sync", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
-          }),
-        });
+            body: JSON.stringify({
+              connection: {
+                id: parentOrganization?.id || "",
+                type: integration?.name || "",
+                name: connectionName,
+                apiKey: apiKey,
+                connectionUrl: connectionData.connectionUrl,
+                syncInterval: "monthly",
+              },
+            }),
+          });
 
-        toast({
-          title: `Added ${integration?.name} connection`,
-          description: "Connection created and data sync initiated",
-        });
-      } catch (syncError) {
-        console.error("Failed to trigger sync:", syncError);
+          toast({
+            title: `Added ${integration?.name} connection`,
+            description: "Connection created and data sync initiated",
+          });
+        } catch (syncError) {
+          console.error("Failed to trigger sync:", syncError);
 
+          toast({
+            title: `Added ${integration?.name} connection`,
+            description: "Connection created but initial sync failed to start",
+          });
+        }
+      } else {
         toast({
-          title: `Added ${integration?.name} connection`,
-          description: "Connection created but initial sync failed to start",
+          title: "Added Shopify connection",
+          description: "Connection created successfully",
         });
       }
 

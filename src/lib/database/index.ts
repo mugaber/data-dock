@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { randomBytes } from "crypto";
 import forecastSchema from "./schema/forecast";
 import intectSchema from "./schema/intect";
+import shopifySchema from "./schema/shopify";
 
 const adminPrisma = new PrismaClient({
   datasources: {
@@ -85,6 +86,12 @@ export async function createSchema({
 
     if (connectionType === "intect") {
       await dbPrisma.$executeRawUnsafe(intectSchema.salaryBatchesTable);
+    }
+
+    if (connectionType === "shopify") {
+      await dbPrisma.$executeRawUnsafe(shopifySchema.ordersTable);
+      await dbPrisma.$executeRawUnsafe(shopifySchema.customersTable);
+      await dbPrisma.$executeRawUnsafe(shopifySchema.lineItemsTable);
     }
   } catch (error) {
     throw error;
