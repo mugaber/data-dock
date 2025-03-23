@@ -16,10 +16,22 @@ export default function ConnectionCard({
   apiKey,
   onEdit,
   onDock,
+  onSync,
 }: ConnectionCardProps) {
   const [syncProgress, setSyncProgress] = useState(0);
 
   const handleSyncButton = async () => {
+    if (onSync) {
+      setSyncProgress(10);
+      try {
+        await onSync();
+      } catch (error) {
+        console.error("Sync error:", error);
+      } finally {
+        setSyncProgress(0);
+        return;
+      }
+    }
     await handleSync({
       setSyncProgress,
       connection: {

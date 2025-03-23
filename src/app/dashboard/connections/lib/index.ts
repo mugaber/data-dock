@@ -9,6 +9,7 @@ export interface ConnectionCardProps {
   syncInterval?: string;
   onEdit?: () => void;
   onDock?: () => void;
+  onSync?: () => Promise<void>;
   connectionUrl?: string;
   username?: string;
   password?: string;

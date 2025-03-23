@@ -166,19 +166,15 @@ export default function Connections() {
     };
   }, [bulkOperation]);
 
-  useEffect(() => {
-    const initializeBulkOperation = async () => {
-      // First check if there's an existing operation
-      const hasExistingOperation = await checkExistingOperation();
+  const handleShopifySync = async () => {
+    // First check if there's an existing operation
+    const hasExistingOperation = await checkExistingOperation();
 
-      // Only start a new operation if there isn't one in progress
-      if (!hasExistingOperation) {
-        await startBulkOperation();
-      }
-    };
-
-    initializeBulkOperation();
-  }, []);
+    // Only start a new operation if there isn't one in progress
+    if (!hasExistingOperation) {
+      await startBulkOperation();
+    }
+  };
 
   const handleEdit = (connection: ConnectionCardProps) => {
     setSelectedConnection(connection);
@@ -261,6 +257,9 @@ export default function Connections() {
               connectionUrl={connection.connectionUrl}
               onEdit={() => handleEdit(connection)}
               onDock={() => handleDock(connection)}
+              onSync={
+                connection.type === "shopify" ? handleShopifySync : undefined
+              }
             />
           ))}
         </div>
