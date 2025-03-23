@@ -28,17 +28,20 @@ import { downloadFile, uploadFile } from "@/lib/supabase/buckets";
 import { useGoogleAuth } from "@/hooks/use-google-auth";
 import { FORECAST_HEADERS } from "@/lib/types/forecast-headers";
 import { fetchIntectData } from "./lib/intect";
+import { ParsedShopifyData } from "@/lib/shopify";
 
 interface DockModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   connection: ConnectionCardProps | null;
+  shopifyDataFetch?: () => Promise<ParsedShopifyData>;
 }
 
 export default function DockModal({
   open,
   onOpenChange,
   connection,
+  shopifyDataFetch,
 }: DockModalProps) {
   const { parentOrganization } = useAppContext();
 
@@ -211,31 +214,57 @@ export default function DockModal({
       const filename = `${connection?.name}.zip`;
       const filePath = `${parentOrganization?.id}/${filename}`;
 
-      const { data } = await downloadFile(filePath, bucketName);
-
-      if (data) {
-        const blob = new Blob([data], { type: "application/zip" });
+      const { data: existingData } = await downloadFile(filePath, bucketName);
+      if (existingData) {
+        const blob = new Blob([existingData], { type: "application/zip" });
         saveAs(blob, filename);
         return;
       }
 
       const zip = new JSZip();
 
-      if (connection?.type === "intect") {
-        const intectData = await fetchIntectData(connection);
+      if (connection?.type === "shopify" && shopifyDataFetch) {
+        setExportProgress(10);
+        const shopifyData = await shopifyDataFetch();
+        setExportProgress(90);
 
+        if (shopifyData.orders.length > 0) {
+          const ordersCSV = convertToCSV(
+            shopifyData.orders.map((order) => ({ ...order })),
+            "orders",
+            "shopify"
+          );
+          zip.file("orders.csv", ordersCSV);
+        }
+
+        if (shopifyData.lineItems.length > 0) {
+          const lineItemsCSV = convertToCSV(
+            shopifyData.lineItems.map((item) => ({ ...item })),
+            "line_items",
+            "shopify"
+          );
+          zip.file("line_items.csv", lineItemsCSV);
+        }
+
+        if (shopifyData.customers.length > 0) {
+          const customersCSV = convertToCSV(
+            shopifyData.customers.map((customer) => ({ ...customer })),
+            "customers",
+            "shopify"
+          );
+          zip.file("customers.csv", customersCSV);
+        }
+      } else if (connection?.type === "intect") {
+        const intectData = await fetchIntectData(connection);
         intectData?.map((item) => {
           const csvContent = convertToCSVExtended(
             item.data as Record<string, unknown>[],
             item.name || "",
             "intect"
           );
-
           zip.file(`${item.name}.csv`, csvContent);
         });
-      }
-
-      if (connection?.type === "forecast") {
+      } else if (connection?.type === "forecast") {
         const { forecastData } = await fetchForecastData(
           FORECAST_ENDPOINTS,
           connection?.apiKey || "",
@@ -250,7 +279,6 @@ export default function DockModal({
               item.name || "",
               "forecast"
             );
-
             zip.file(`${item.name}.csv`, csvContent);
           }
         });
@@ -266,17 +294,7 @@ export default function DockModal({
         type: "application/zip",
       });
 
-      uploadFile(file, filePath, bucketName).catch((error) => {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "An error occurred while uploading the file";
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      });
+      await uploadFile(file, filePath, bucketName);
     } catch (error) {
       const errorMessage =
         error instanceof Error

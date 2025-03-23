@@ -3,7 +3,7 @@ import { FORECAST_HEADERS } from "@/lib/types/forecast-headers";
 export const convertToCSV = (
   data: Record<string, unknown>[],
   tableName: string,
-  type: "forecast" | "intect"
+  type: "forecast" | "intect" | "shopify"
 ): string => {
   if (!data || data.length === 0) return "";
 
@@ -12,17 +12,29 @@ export const convertToCSV = (
       ? FORECAST_HEADERS[tableName as keyof typeof FORECAST_HEADERS]
       : Object.keys(data[0]);
 
+  // Helper function to format cell value
+  const formatCell = (value: unknown): string => {
+    // Handle null or undefined
+    if (value === null || value === undefined) {
+      return '""';
+    }
+
+    // Handle objects and arrays
+    if (typeof value === "object") {
+      const jsonStr = JSON.stringify(value).replace(/"/g, '""');
+      return `"${jsonStr}"`;
+    }
+
+    // Always quote the cell to prevent any issues with special characters
+    const cell = String(value).replace(/"/g, '""');
+    return `"${cell}"`;
+  };
+
   const csvRows = [
-    headers.join(","),
+    // Quote all headers to be consistent
+    headers.map((header) => `"${header}"`).join(","),
     ...data.map((row) =>
-      headers
-        .map((header) => {
-          const cell = row[header]?.toString() ?? "";
-          return cell.includes(",") || cell.includes("\n") || cell.includes('"')
-            ? `"${cell.replace(/"/g, '""')}"`
-            : cell;
-        })
-        .join(",")
+      headers.map((header) => formatCell(row[header])).join(",")
     ),
   ];
 
@@ -32,7 +44,7 @@ export const convertToCSV = (
 export const convertToCSVExtended = (
   data: Record<string, unknown>[],
   tableName: string,
-  type: "forecast" | "intect"
+  type: "forecast" | "intect" | "shopify"
 ): string => {
   if (!data || data.length === 0) return "";
 

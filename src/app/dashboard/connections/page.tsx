@@ -166,13 +166,49 @@ export default function Connections() {
     };
   }, [bulkOperation]);
 
-  const handleShopifySync = async () => {
+  const handleShopifyDataFetch = async () => {
     // First check if there's an existing operation
     const hasExistingOperation = await checkExistingOperation();
+
+    // If there's a completed operation with data, return it
+    if (
+      hasExistingOperation &&
+      bulkOperation?.status === "COMPLETED" &&
+      shopifyData
+    ) {
+      return shopifyData;
+    }
 
     // Only start a new operation if there isn't one in progress
     if (!hasExistingOperation) {
       await startBulkOperation();
+    }
+
+    // Poll for completion
+    while (true) {
+      await checkBulkOperationStatus();
+
+      if (bulkOperation?.status === "COMPLETED" && shopifyData) {
+        return shopifyData;
+      } else if (
+        bulkOperation?.status === "FAILED" ||
+        bulkOperation?.status === "CANCELED"
+      ) {
+        throw new Error(`Bulk operation ${bulkOperation.status.toLowerCase()}`);
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+  };
+
+  const handleShopifySync = async () => {
+    try {
+      await handleShopifyDataFetch();
+    } catch (error) {
+      console.error("Error syncing Shopify data:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to sync Shopify data"
+      );
     }
   };
 
@@ -281,6 +317,11 @@ export default function Connections() {
           open={isDockOpen}
           onOpenChange={setIsDockOpen}
           connection={selectedConnection}
+          shopifyDataFetch={
+            selectedConnection?.type === "shopify"
+              ? handleShopifyDataFetch
+              : undefined
+          }
         />
 
         <SettingsModal
