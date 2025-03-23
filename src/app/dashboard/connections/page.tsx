@@ -54,13 +54,25 @@ export default function Connections() {
         if (data.status === "COMPLETED" && data.url) {
           const parsedData = await parseShopifyBulkData(data.url);
           setShopifyData(parsedData);
+          return {
+            hasExistingOperation: true,
+            shopifyData: parsedData,
+            bulkOperation: data,
+          };
         }
-        return true;
       }
-      return false;
+      return {
+        hasExistingOperation: false,
+        shopifyData: null,
+        bulkOperation: null,
+      };
     } catch (error) {
       console.error("Error checking existing operation:", error);
-      return false;
+      return {
+        hasExistingOperation: false,
+        shopifyData: null,
+        bulkOperation: null,
+      };
     }
   };
 
@@ -168,7 +180,8 @@ export default function Connections() {
 
   const handleShopifyDataFetch = async () => {
     // First check if there's an existing operation
-    const hasExistingOperation = await checkExistingOperation();
+    const { hasExistingOperation, shopifyData, bulkOperation } =
+      await checkExistingOperation();
 
     // If there's a completed operation with data, return it
     if (
