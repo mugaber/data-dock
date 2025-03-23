@@ -226,20 +226,29 @@ export default function DockModal({
       if (connection?.type === "shopify" && shopifyDataFetch) {
         setExportProgress(10);
         const shopifyData = await shopifyDataFetch();
-        setExportProgress(90);
+        setExportProgress(50);
 
         if (shopifyData.orders.length > 0) {
           const ordersCSV = convertToCSV(
-            shopifyData.orders.map((order) => ({ ...order })),
+            shopifyData.orders as unknown as Record<string, unknown>[],
             "orders",
             "shopify"
           );
           zip.file("orders.csv", ordersCSV);
         }
 
+        if (shopifyData.draftOrders.length > 0) {
+          const draftOrdersCSV = convertToCSV(
+            shopifyData.draftOrders as unknown as Record<string, unknown>[],
+            "draft_orders",
+            "shopify"
+          );
+          zip.file("draft_orders.csv", draftOrdersCSV);
+        }
+
         if (shopifyData.lineItems.length > 0) {
           const lineItemsCSV = convertToCSV(
-            shopifyData.lineItems.map((item) => ({ ...item })),
+            shopifyData.lineItems as unknown as Record<string, unknown>[],
             "line_items",
             "shopify"
           );
@@ -248,7 +257,7 @@ export default function DockModal({
 
         if (shopifyData.customers.length > 0) {
           const customersCSV = convertToCSV(
-            shopifyData.customers.map((customer) => ({ ...customer })),
+            shopifyData.customers as unknown as Record<string, unknown>[],
             "customers",
             "shopify"
           );

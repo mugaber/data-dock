@@ -28,6 +28,7 @@ export default function Connections() {
     useState<BulkOperationStatus | null>(null);
   const [shopifyData, setShopifyData] = useState<ParsedShopifyData>({
     orders: [],
+    draftOrders: [],
     lineItems: [],
     customers: [],
   });

@@ -87,6 +87,40 @@ export interface ShopifyOrder {
   lineItems: ShopifyLineItem[];
 }
 
+export interface ShopifyDraftOrder {
+  id: string;
+  name: string;
+  note2?: string;
+  email?: string;
+  taxesIncluded: boolean;
+  currencyCode: string;
+  invoiceSentAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  taxExempt: boolean;
+  completedAt?: string;
+  status: string;
+  invoiceUrl?: string;
+  totalPrice: string;
+  subtotalPrice: string;
+  totalTax: string;
+  customer?: ShopifyCustomer;
+  shippingAddress?: ShopifyAddress;
+  billingAddress?: ShopifyAddress;
+  lineItems: {
+    edges: Array<{
+      node: ShopifyLineItem;
+    }>;
+  };
+}
+
+export interface ParsedShopifyData {
+  orders: ShopifyOrder[];
+  draftOrders: ShopifyDraftOrder[];
+  lineItems: ShopifyLineItem[];
+  customers: ShopifyCustomer[];
+}
+
 export interface BulkOperationResponse {
   bulkOperationRunQuery: {
     bulkOperation: {
@@ -241,6 +275,128 @@ export const BULK_OPERATION_QUERY = `
                       key
                       value
                     }
+                  }
+                }
+              }
+            }
+          }
+        }
+        draftOrders {
+          edges {
+            node {
+              id
+              name
+              note2
+              email
+              taxesIncluded
+              currencyCode
+              invoiceSentAt
+              createdAt
+              updatedAt
+              taxExempt
+              completedAt
+              name
+              status
+              invoiceUrl
+              totalPrice
+              subtotalPrice
+              totalTax
+              customer {
+                id
+                email
+                createdAt
+                updatedAt
+                firstName
+                lastName
+                state
+                amountSpent {
+                  amount
+                  currencyCode
+                }
+                lastOrder {
+                  id
+                  name
+                  currencyCode
+                }
+                verifiedEmail
+                taxExempt
+                phone
+                defaultAddress {
+                  id
+                  firstName
+                  lastName
+                  address1
+                  address2
+                  city
+                  province
+                  country
+                  zip
+                  phone
+                  name
+                  provinceCode
+                  countryCodeV2
+                }
+              }
+              shippingAddress {
+                id
+                firstName
+                lastName
+                address1
+                address2
+                city
+                zip
+                province
+                country
+                phone
+                company
+                latitude
+                longitude
+                countryCodeV2
+                provinceCode
+              }
+              billingAddress {
+                id
+                firstName
+                lastName
+                address1
+                address2
+                city
+                zip
+                province
+                country
+                phone
+                company
+                latitude
+                longitude
+                countryCodeV2
+                provinceCode
+              }
+              lineItems {
+                edges {
+                  node {
+                    id
+                    variant {
+                      id
+                      title
+                    }
+                    product {
+                      id
+                    }
+                    name
+                    sku
+                    vendor
+                    quantity
+                    requiresShipping
+                    taxable
+                    isGiftCard
+                    fulfillmentService {
+                      type
+                    }
+                    weight {
+                      unit
+                      value
+                    }
+                    custom
                   }
                 }
               }
