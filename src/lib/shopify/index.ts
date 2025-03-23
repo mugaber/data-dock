@@ -4,23 +4,10 @@ import {
   ShopifyOrder,
 } from "@/app/dashboard/connections/lib/shopify";
 
-export interface SimplifiedCustomer {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-}
-
-export interface SimplifiedLineItem {
-  id: string;
-  name: string;
-  quantity: number;
-}
-
 export interface ProcessedShopifyOrder
   extends Omit<ShopifyOrder, "customer" | "lineItems"> {
-  customer?: SimplifiedCustomer | null;
-  lineItems: SimplifiedLineItem[];
+  customerId?: string | null;
+  lineItemsIds: string[];
 }
 
 export interface ParsedShopifyData {
@@ -47,7 +34,7 @@ export async function parseShopifyBulkData(
   const orders: ShopifyOrder[] = [];
   const lineItems: ShopifyLineItem[] = [];
   const customersMap = new Map<string, ShopifyCustomer>();
-  const orderLineItemsMap = new Map<string, SimplifiedLineItem[]>();
+  const orderLineItemsMap = new Map<string, string[]>();
 
   // First pass: collect all orders and line items, and build unique customers map
   text
@@ -71,14 +58,8 @@ export async function parseShopifyBulkData(
         // If it's a line item
         if (parsed.__parentId && parsed.id && parsed.variant) {
           lineItems.push(parsed);
-          // Add simplified line item to the parent order's array
-          const simplifiedLineItem: SimplifiedLineItem = {
-            id: parsed.id,
-            name: parsed.name,
-            quantity: parsed.quantity,
-          };
           const orderLineItems = orderLineItemsMap.get(parsed.__parentId) || [];
-          orderLineItems.push(simplifiedLineItem);
+          orderLineItems.push(parsed.id);
           orderLineItemsMap.set(parsed.__parentId, orderLineItems);
         }
       } catch (parseError) {
@@ -87,31 +68,17 @@ export async function parseShopifyBulkData(
       }
     });
 
-  // Convert orders to have simplified customer info and line items
   const processedOrders = orders.map((order) => {
-    const simplifiedLineItems = orderLineItemsMap.get(order.id) || [];
+    const lineItemsIds = orderLineItemsMap.get(order.id) || [];
 
-    if (!order.customer) {
-      return {
-        ...order,
-        customer: null,
-        lineItems: simplifiedLineItems,
-      } as ProcessedShopifyOrder;
-    }
+    const { customer, billingAddress, shippingAddress, ...rest } = order;
 
-    // Create simplified customer object
-    const simplifiedCustomer: SimplifiedCustomer = {
-      id: order.customer.id,
-      email: order.customer.email,
-      firstName: order.customer.firstName,
-      lastName: order.customer.lastName,
-    };
-
-    // Return order with simplified customer and line items
     return {
-      ...order,
-      customer: simplifiedCustomer,
-      lineItems: simplifiedLineItems,
+      ...rest,
+      customerId: customer?.id,
+      lineItemsIds: lineItemsIds,
+      billingAddressId: billingAddress?.id,
+      shippingAddressId: shippingAddress?.id,
     } as ProcessedShopifyOrder;
   });
 
