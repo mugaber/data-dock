@@ -81,6 +81,22 @@ export async function GET() {
       });
     }
 
+    // Check if the operation is older than 12 hours
+    const operationCreatedAt = new Date(operation.createdAt);
+    const now = new Date();
+    const hoursSinceCreation =
+      (now.getTime() - operationCreatedAt.getTime()) / (1000 * 60 * 60);
+
+    // If operation is completed but older than 12 hours, we should create a new one
+    if (operation.status === "COMPLETED" && hoursSinceCreation > 12) {
+      currentOperation = null;
+      return NextResponse.json({
+        operationId: null,
+        status: null,
+        message: "Existing operation is too old, will create new one",
+      });
+    }
+
     // Update current operation status
     currentOperation = operation;
 
@@ -89,6 +105,8 @@ export async function GET() {
       status: operation.status,
       objectCount: operation.objectCount,
       url: operation.url,
+      createdAt: operation.createdAt,
+      hoursSinceCreation: Math.round(hoursSinceCreation),
     });
   } catch (error) {
     console.error("Error checking bulk operation:", error);

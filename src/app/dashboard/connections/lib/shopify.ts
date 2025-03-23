@@ -141,6 +141,7 @@ export interface CurrentBulkOperationResponse {
     status: string;
     objectCount: number;
     url?: string;
+    createdAt: string;
   } | null;
 }
 
@@ -429,6 +430,7 @@ export const CHECK_BULK_OPERATION_QUERY = `
       errorCode
       objectCount
       url
+      createdAt
     }
   }
 `;
