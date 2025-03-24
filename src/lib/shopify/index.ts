@@ -42,9 +42,8 @@ export async function parseShopifyBulkData(
   const orders: ShopifyOrder[] = [];
   const draftOrders: ShopifyDraftOrder[] = [];
   const lineItems: ShopifyLineItem[] = [];
+  const lineItemsMap = new Map<string, string[]>();
   const customersMap = new Map<string, ShopifyCustomer>();
-  const orderLineItemsMap = new Map<string, string[]>();
-  const draftOrderLineItemsMap = new Map<string, string[]>();
 
   // First pass: collect all orders, draft orders, line items, and build unique customers map
   text
@@ -58,7 +57,7 @@ export async function parseShopifyBulkData(
         if (!parsed.__parentId && parsed.id && parsed.name && !parsed.status) {
           orders.push(parsed);
           // Initialize empty line items array for this order
-          orderLineItemsMap.set(parsed.id, []);
+          lineItemsMap.set(parsed.id, []);
           // If order has customer info, add to unique customers map
           if (parsed.customer?.id) {
             customersMap.set(parsed.customer.id, parsed.customer);
@@ -69,7 +68,7 @@ export async function parseShopifyBulkData(
         if (!parsed.__parentId && parsed.id && parsed.name && parsed.status) {
           draftOrders.push(parsed);
           // Initialize empty line items array for this draft order
-          draftOrderLineItemsMap.set(parsed.id, []);
+          lineItemsMap.set(parsed.id, []);
           // If draft order has customer info, add to unique customers map
           if (parsed.customer?.id) {
             customersMap.set(parsed.customer.id, parsed.customer);
@@ -77,20 +76,10 @@ export async function parseShopifyBulkData(
         }
 
         // If it's a line item
-        if (parsed.__parentId && parsed.id && parsed.variant) {
+        if (parsed.__parentId && parsed?.id?.includes("LineItem")) {
           lineItems.push(parsed);
-          // Add to either regular order or draft order line items map
-          const orderLineItems = orderLineItemsMap.get(parsed.__parentId) || [];
-          const draftOrderLineItems =
-            draftOrderLineItemsMap.get(parsed.__parentId) || [];
-
-          if (orderLineItems.length > 0) {
-            orderLineItems.push(parsed.id);
-            orderLineItemsMap.set(parsed.__parentId, orderLineItems);
-          } else if (draftOrderLineItems.length > 0) {
-            draftOrderLineItems.push(parsed.id);
-            draftOrderLineItemsMap.set(parsed.__parentId, draftOrderLineItems);
-          }
+          // add line item to the map for both order and draft order
+          lineItemsMap.get(parsed.__parentId)?.push(parsed.id);
         }
       } catch (parseError) {
         console.error("Error parsing line:", line);
@@ -99,7 +88,7 @@ export async function parseShopifyBulkData(
     });
 
   const processedOrders = orders.map((order) => {
-    const lineItemsIds = orderLineItemsMap.get(order.id) || [];
+    const lineItemsIds = lineItemsMap.get(order.id) || [];
 
     const { customer, billingAddress, shippingAddress, ...rest } = order;
 
@@ -113,7 +102,7 @@ export async function parseShopifyBulkData(
   });
 
   const processedDraftOrders = draftOrders.map((order) => {
-    const lineItemsIds = draftOrderLineItemsMap.get(order.id) || [];
+    const lineItemsIds = lineItemsMap.get(order.id) || [];
 
     const { customer, billingAddress, shippingAddress, ...rest } = order;
 
