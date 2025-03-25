@@ -150,6 +150,39 @@ export const TIME_REGISTRATIONS_HEADERS = [
   "updated_at",
 ] as const;
 
+export const NON_PROJECT_TIME_HEADERS = [
+  "id",
+  "name",
+  "is_internal_time",
+  "created_by",
+  "updated_by",
+  "created_at",
+  "updated_at",
+] as const;
+
+export const ALLOCATIONS_HEADERS = [
+  "id",
+  "project",
+  "connected_project",
+  "non_project_time",
+  "person",
+  "start_date",
+  "end_date",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+  "notes",
+  "is_soft",
+  "created_by",
+  "updated_by",
+  "created_at",
+  "updated_at",
+] as const;
+
 export const FORECAST_HEADERS = {
   projects: PROJECTS_HEADERS,
   person_cost_periods: PERSON_COST_PERIODS_HEADERS,
@@ -158,4 +191,6 @@ export const FORECAST_HEADERS = {
   persons: PERSONS_HEADERS,
   rate_cards: RATE_CARDS_HEADERS,
   time_registrations: TIME_REGISTRATIONS_HEADERS,
+  non_project_time: NON_PROJECT_TIME_HEADERS,
+  allocations: ALLOCATIONS_HEADERS,
 } as const;

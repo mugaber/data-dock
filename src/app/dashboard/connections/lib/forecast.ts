@@ -62,6 +62,18 @@ export const FORECAST_ENDPOINTS: EndpointData[] = [
     name: "rate_cards",
     description: "Get rate cards",
   },
+  {
+    path: "/non_project_time",
+    version: "v1",
+    name: "non_project_time",
+    description: "Get non project time",
+  },
+  {
+    path: "/allocations",
+    version: "v1",
+    name: "allocations",
+    description: "Get allocations",
+  },
 ];
 
 const getEndpointName = (url: string) => {
