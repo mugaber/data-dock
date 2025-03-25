@@ -138,6 +138,7 @@ export const TIME_REGISTRATIONS_HEADERS = [
   "task",
   "task_project",
   "non_project_time",
+  "is_internal_time",
   "time_registered",
   "date",
   "notes",

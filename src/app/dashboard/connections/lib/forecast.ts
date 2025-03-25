@@ -13,6 +13,39 @@ interface ForecastData {
   path: string;
 }
 
+interface NonProjectTime {
+  id: number;
+  name: string;
+  is_internal_time: boolean;
+  created_by: number;
+  updated_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TimeRegistration {
+  id: number;
+  person: number;
+  project: number | null;
+  role: number;
+  billable_minutes_registered: number;
+  phase: number | null;
+  task: number | null;
+  task_project: number | null;
+  non_project_time: number | null;
+  time_registered: number;
+  date: string;
+  notes: string | null;
+  approval_status: string;
+  invoice_entry: number | null;
+  invoice: number | null;
+  created_by: number;
+  updated_by: number;
+  created_at: string;
+  updated_at: string;
+  is_internal_time?: boolean | null;
+}
+
 export const FORECAST_ENDPOINTS: EndpointData[] = [
   {
     path: "/projects",
@@ -131,24 +164,66 @@ export const fetchForecastData = async (
   apiKey: string,
   onProgress?: (progress: number) => void
 ) => {
-  const promises = [];
   const forecastData = [];
   let completedSteps = 0;
   const totalSteps = endpoints.length;
+  let nonProjectTimeMap: { [key: number]: boolean } = {};
 
   try {
-    for (const endpoint of endpoints) {
-      promises.push(
-        fetch(
-          `https://api.forecast.it/api/${endpoint.version}${endpoint.path}`,
-          {
-            headers: {
-              "X-FORECAST-API-KEY": apiKey,
-            },
-          }
-        )
+    const nonProjectTimeEndpoint = endpoints.find(
+      (e) => e.name === "non_project_time"
+    );
+    const remainingEndpoints = endpoints.filter(
+      (e) => e.name !== "non_project_time"
+    );
+
+    if (nonProjectTimeEndpoint) {
+      const response = await fetch(
+        `https://api.forecast.it/api/${nonProjectTimeEndpoint.version}${nonProjectTimeEndpoint.path}`,
+        {
+          headers: {
+            "X-FORECAST-API-KEY": apiKey,
+          },
+        }
       );
+
+      if (response.status > 400) {
+        throw new Error("Invalid API key");
+      }
+
+      const data = await response.json();
+      const pageContents = await handleMultiplePages(
+        data,
+        response.url,
+        apiKey,
+        onProgress
+      );
+
+      nonProjectTimeMap = pageContents.reduce(
+        (acc: { [key: number]: boolean }, item: NonProjectTime) => {
+          acc[item.id] = item.is_internal_time;
+          return acc;
+        },
+        {}
+      );
+
+      forecastData.push({
+        name: "non_project_time",
+        data: pageContents,
+      });
+
+      completedSteps++;
+      onProgress?.(Math.round((completedSteps / totalSteps) * 95));
     }
+
+    // Then fetch remaining endpoints in parallel
+    const promises = remainingEndpoints.map((endpoint) =>
+      fetch(`https://api.forecast.it/api/${endpoint.version}${endpoint.path}`, {
+        headers: {
+          "X-FORECAST-API-KEY": apiKey,
+        },
+      })
+    );
 
     const responses = await Promise.all(promises);
     for (const response of responses) {
@@ -164,10 +239,45 @@ export const fetchForecastData = async (
         onProgress
       );
 
-      forecastData.push({
-        name: getEndpointName(response.url),
-        data: pageContents,
-      });
+      const endpointName = getEndpointName(response.url);
+      if (endpointName === "time_registrations") {
+        const enrichedPageContents = pageContents.map(
+          (item: TimeRegistration) => ({
+            ...item,
+            id: item.id,
+            person: item.person,
+            project: item.project,
+            role: item.role,
+            billable_minutes_registered: item.billable_minutes_registered,
+            phase: item.phase,
+            task: item.task,
+            task_project: item.task_project,
+            non_project_time: item.non_project_time,
+            is_internal_time: item.non_project_time
+              ? nonProjectTimeMap[item.non_project_time]
+              : null,
+            time_registered: item.time_registered,
+            date: item.date,
+            notes: item.notes,
+            approval_status: item.approval_status,
+            invoice_entry: item.invoice_entry,
+            invoice: item.invoice,
+            created_by: item.created_by,
+            updated_by: item.updated_by,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+          })
+        );
+        forecastData.push({
+          name: endpointName,
+          data: enrichedPageContents,
+        });
+      } else {
+        forecastData.push({
+          name: endpointName,
+          data: pageContents,
+        });
+      }
 
       completedSteps++;
       onProgress?.(Math.round((completedSteps / totalSteps) * 95));
