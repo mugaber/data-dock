@@ -3,6 +3,7 @@ import {
   ShopifyCustomer,
   ShopifyOrder,
   ShopifyDraftOrder,
+  ShopifyRefund,
 } from "@/app/dashboard/connections/lib/shopify";
 
 export interface ProcessedShopifyOrder
@@ -22,6 +23,7 @@ export interface ParsedShopifyData {
   draftOrders: ProcessedShopifyDraftOrder[];
   lineItems: ShopifyLineItem[];
   customers: ShopifyCustomer[];
+  refunds: ShopifyRefund[];
 }
 
 export async function parseShopifyBulkData(
@@ -44,6 +46,7 @@ export async function parseShopifyBulkData(
   const lineItems: ShopifyLineItem[] = [];
   const lineItemsMap = new Map<string, string[]>();
   const customersMap = new Map<string, ShopifyCustomer>();
+  const refunds: ShopifyRefund[] = [];
 
   // First pass: collect all orders, draft orders, line items, and build unique customers map
   text
@@ -80,6 +83,15 @@ export async function parseShopifyBulkData(
           lineItems.push(parsed);
           // add line item to the map for both order and draft order
           lineItemsMap.get(parsed.__parentId)?.push(parsed.id);
+        }
+
+        // If it's a refund
+        if (parsed.__typename === "Refund") {
+          refunds.push(parsed);
+          // If refund's order has customer info, add to unique customers map
+          if (parsed.order?.customer?.id) {
+            customersMap.set(parsed.order.customer.id, parsed.order.customer);
+          }
         }
       } catch (parseError) {
         console.error("Error parsing line:", line);
@@ -120,6 +132,7 @@ export async function parseShopifyBulkData(
     draftOrders: processedDraftOrders,
     lineItems,
     customers: Array.from(customersMap.values()),
+    refunds,
   };
 
   console.log("Parsed Data:", {
@@ -127,14 +140,17 @@ export async function parseShopifyBulkData(
     totalDraftOrders: result.draftOrders.length,
     totalLineItems: result.lineItems.length,
     totalUniqueCustomers: result.customers.length,
+    totalRefunds: result.refunds.length,
     orders: result.orders,
     draftOrders: result.draftOrders,
     lineItems: result.lineItems,
     customers: result.customers,
+    refunds: result.refunds,
     sampleOrder: result.orders[0],
     sampleDraftOrder: result.draftOrders[0],
     sampleLineItem: result.lineItems[0],
     sampleCustomer: result.customers[0],
+    sampleRefund: result.refunds[0],
     firstFiveOrderIds: result.orders.slice(0, 5).map((order) => order.id),
     firstFiveDraftOrderIds: result.draftOrders
       .slice(0, 5)
@@ -142,6 +158,7 @@ export async function parseShopifyBulkData(
     firstFiveCustomerIds: result.customers
       .slice(0, 5)
       .map((customer) => customer.id),
+    firstFiveRefundIds: result.refunds.slice(0, 5).map((refund) => refund.id),
   });
 
   return result;

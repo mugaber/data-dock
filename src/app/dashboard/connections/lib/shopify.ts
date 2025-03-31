@@ -85,6 +85,11 @@ export interface ShopifyOrder {
   shippingAddress?: ShopifyAddress;
   billingAddress?: ShopifyAddress;
   lineItems: ShopifyLineItem[];
+  refunds?: {
+    edges: Array<{
+      node: ShopifyRefund;
+    }>;
+  };
 }
 
 export interface ShopifyDraftOrder {
@@ -114,11 +119,38 @@ export interface ShopifyDraftOrder {
   };
 }
 
+export interface ShopifyRefund {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  legacyResourceId: string;
+  note?: string;
+  order: {
+    id: string;
+    name: string;
+    email?: string;
+    createdAt: string;
+    updatedAt: string;
+    currencyCode: string;
+    totalPrice: string;
+    subtotalPrice: string;
+    totalTax: string;
+    totalDiscounts: string;
+    totalShippingPrice: string;
+    displayFinancialStatus: string;
+    displayFulfillmentStatus: string;
+    customer: {
+      id: string;
+    };
+  };
+}
+
 export interface ParsedShopifyData {
   orders: ShopifyOrder[];
   draftOrders: ShopifyDraftOrder[];
   lineItems: ShopifyLineItem[];
   customers: ShopifyCustomer[];
+  refunds: ShopifyRefund[];
 }
 
 export interface BulkOperationResponse {
@@ -276,6 +308,31 @@ export const BULK_OPERATION_QUERY = `
                       key
                       value
                     }
+                  }
+                }
+              }
+              refunds {
+                id
+                createdAt
+                updatedAt
+                legacyResourceId
+                note
+                order {
+                  id
+                  name
+                  email
+                  createdAt
+                  updatedAt
+                  currencyCode
+                  totalPrice
+                  subtotalPrice
+                  totalTax
+                  totalDiscounts
+                  totalShippingPrice
+                  displayFinancialStatus
+                  displayFulfillmentStatus
+                  customer {
+                    id
                   }
                 }
               }
@@ -506,9 +563,11 @@ async function handleExistingOperation(
   await new Promise((resolve) => setTimeout(resolve, 2000));
 }
 
-export async function fetchShopifyOrders(
-  accessToken: string
-): Promise<ShopifyOrder[]> {
+export async function fetchShopifyOrders(accessToken: string): Promise<{
+  orders: ShopifyOrder[];
+  draftOrders: ShopifyDraftOrder[];
+  refunds: ShopifyRefund[];
+}> {
   try {
     const client = new GraphQLClient(
       "https://frama-b2c.myshopify.com/admin/api/2025-01/graphql.json",
@@ -574,17 +633,31 @@ export async function fetchShopifyOrders(
     console.log("Received data length:", text.length);
 
     const orders: ShopifyOrder[] = [];
+    const draftOrders: ShopifyDraftOrder[] = [];
+    const refunds: ShopifyRefund[] = [];
 
     // Parse JSONL format
     text.split("\n").forEach((line) => {
       if (line.trim()) {
         try {
-          const order = JSON.parse(line);
-          if (order.__typename === "Order") {
+          const parsed = JSON.parse(line);
+          if (parsed.__typename === "Order") {
+            // Extract refunds from the order
+            if (parsed.refunds) {
+              refunds.push(...parsed.refunds);
+            }
             orders.push({
-              ...order,
+              ...parsed,
               lineItems:
-                order.lineItems?.edges?.map(
+                parsed.lineItems?.edges?.map(
+                  (edge: { node: ShopifyLineItem }) => edge.node
+                ) || [],
+            });
+          } else if (parsed.__typename === "DraftOrder") {
+            draftOrders.push({
+              ...parsed,
+              lineItems:
+                parsed.lineItems?.edges?.map(
                   (edge: { node: ShopifyLineItem }) => edge.node
                 ) || [],
             });
@@ -596,10 +669,14 @@ export async function fetchShopifyOrders(
       }
     });
 
-    console.log("Processed orders count:", orders.length);
-    return orders;
+    console.log("Processed data:", {
+      orders: orders.length,
+      draftOrders: draftOrders.length,
+      refunds: refunds.length,
+    });
+    return { orders, draftOrders, refunds };
   } catch (error) {
-    console.error("Error fetching Shopify orders:", error);
+    console.error("Error fetching Shopify data:", error);
     throw error; // Throw the original error to preserve the stack trace
   }
 }

@@ -31,6 +31,7 @@ export default function Connections() {
     draftOrders: [],
     lineItems: [],
     customers: [],
+    refunds: [],
   });
   const [error, setError] = useState<string | null>(null);
 

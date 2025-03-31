@@ -60,10 +60,35 @@ const lineItemsTable = `
   );
 `;
 
+const refundsTable = `
+  CREATE TABLE shopify.refunds (
+    id TEXT PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    legacy_resource_id TEXT,
+    note TEXT,
+    order_id TEXT REFERENCES shopify.orders(id),
+    order_name TEXT,
+    order_email TEXT,
+    order_created_at TIMESTAMP WITH TIME ZONE,
+    order_updated_at TIMESTAMP WITH TIME ZONE,
+    order_currency_code TEXT,
+    order_total_price DECIMAL,
+    order_subtotal_price DECIMAL,
+    order_total_tax DECIMAL,
+    order_total_discounts DECIMAL,
+    order_total_shipping_price DECIMAL,
+    order_display_financial_status TEXT,
+    order_display_fulfillment_status TEXT,
+    order_customer_id TEXT REFERENCES shopify.customers(id)
+  );
+`;
+
 const shopifySchema = {
   ordersTable,
   customersTable,
   lineItemsTable,
+  refundsTable,
 };
 
 export default shopifySchema;

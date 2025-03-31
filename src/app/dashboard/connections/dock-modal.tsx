@@ -263,6 +263,15 @@ export default function DockModal({
           );
           zip.file("customers.csv", customersCSV);
         }
+
+        if (shopifyData.refunds.length > 0) {
+          const refundsCSV = convertToCSV(
+            shopifyData.refunds as unknown as Record<string, unknown>[],
+            "refunds",
+            "shopify"
+          );
+          zip.file("refunds.csv", refundsCSV);
+        }
       } else if (connection?.type === "intect") {
         const intectData = await fetchIntectData(connection);
         intectData?.map((item) => {
