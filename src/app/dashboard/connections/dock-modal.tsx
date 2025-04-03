@@ -129,7 +129,19 @@ export default function DockModal({
         const firstChunk = [
           headers,
           ...firstChuckData.map((row) =>
-            headers.map((header) => row[header] ?? "")
+            headers.map((header) => {
+              const value = row[header];
+              // Handle null/undefined
+              if (value === null || value === undefined) {
+                return "";
+              }
+              // Handle numbers - convert to actual number type
+              if (typeof value === "number" || !isNaN(Number(value))) {
+                return Number(value);
+              }
+              // Handle other types
+              return value;
+            })
           ),
         ];
 
@@ -148,9 +160,21 @@ export default function DockModal({
         });
 
         for (let i = CHUNK_SIZE; i < item.data.length; i += CHUNK_SIZE) {
-          const chunk = item.data
-            .slice(i, i + CHUNK_SIZE)
-            .map((row) => headers.map((header) => row[header] ?? ""));
+          const chunk = item.data.slice(i, i + CHUNK_SIZE).map((row) =>
+            headers.map((header) => {
+              const value = row[header];
+              // Handle null/undefined
+              if (value === null || value === undefined) {
+                return "";
+              }
+              // Handle numbers - convert to actual number type
+              if (typeof value === "number" || !isNaN(Number(value))) {
+                return Number(value);
+              }
+              // Handle other types
+              return value;
+            })
+          );
 
           const updateResponse = await fetch("/api/google/sheets/update", {
             method: "POST",
