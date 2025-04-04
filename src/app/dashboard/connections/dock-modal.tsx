@@ -135,9 +135,31 @@ export default function DockModal({
               if (value === null || value === undefined) {
                 return "";
               }
-              // Handle numbers - convert to actual number type
-              if (typeof value === "number" || !isNaN(Number(value))) {
+              // Handle numbers
+              if (
+                typeof value === "number" ||
+                (!isNaN(Number(value)) && value !== "")
+              ) {
                 return Number(value);
+              }
+              // Handle booleans
+              if (
+                value === "true" ||
+                value === "false" ||
+                typeof value === "boolean"
+              ) {
+                return value === "true" || value === true;
+              }
+              // Handle dates - check if string matches ISO date format
+              if (
+                typeof value === "string" &&
+                /^\d{4}-\d{2}-\d{2}/.test(value)
+              ) {
+                return value.split("T")[0]; // Remove time component if exists
+              }
+              // Remove leading apostrophe if exists
+              if (typeof value === "string" && value.startsWith("'")) {
+                return value.substring(1);
               }
               // Handle other types
               return value;
@@ -167,9 +189,31 @@ export default function DockModal({
               if (value === null || value === undefined) {
                 return "";
               }
-              // Handle numbers - convert to actual number type
-              if (typeof value === "number" || !isNaN(Number(value))) {
+              // Handle numbers
+              if (
+                typeof value === "number" ||
+                (!isNaN(Number(value)) && value !== "")
+              ) {
                 return Number(value);
+              }
+              // Handle booleans
+              if (
+                value === "true" ||
+                value === "false" ||
+                typeof value === "boolean"
+              ) {
+                return value === "true" || value === true;
+              }
+              // Handle dates - check if string matches ISO date format
+              if (
+                typeof value === "string" &&
+                /^\d{4}-\d{2}-\d{2}/.test(value)
+              ) {
+                return value.split("T")[0]; // Remove time component if exists
+              }
+              // Remove leading apostrophe if exists
+              if (typeof value === "string" && value.startsWith("'")) {
+                return value.substring(1);
               }
               // Handle other types
               return value;
